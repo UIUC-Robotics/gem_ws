@@ -174,7 +174,7 @@ def generate_launch_description():
         output='screen',
         condition=IfCondition(gps_init)
     )
-    launch_lucid_on_active = RegisterEventHandler(
+    launch_all_sensors = RegisterEventHandler(
         OnStateTransition(
             target_lifecycle_node=os_driver, goal_state='active',
             entities=[
@@ -199,5 +199,5 @@ def generate_launch_description():
         os_sensor_configure_event,
         os_sensor_activate_event,
         os_sensor_finalized_event,
-        launch_lucid_on_active
+        launch_all_sensors
     ])

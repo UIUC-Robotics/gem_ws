@@ -5,7 +5,7 @@ echo "Starting Polaris Gem sensors..."
 gnome-terminal -- sh -c "source ~/demo_ws/devel/setup.bash; roslaunch basic_launch sensor_init.launch; sleep 10"
 
 echo "Starting Polaris Gem visualization..."
-gnome-terminal -- sh -c "source ~/demo_ws/devel/setup.bash; roslaunch basic_launch visualization.launch; sleep 10"
+gnome-terminal -- sh -c "source ~/demo_ws/devel/setup.bash; roslaunch basic_launch gnss_visualization.launch; sleep 10"
 
 echo "Starting joystick..."
 gnome-terminal -- sh -c "source ~/demo_ws/devel/setup.bash; roslaunch basic_launch dbw_joystick.launch; sleep 10"
