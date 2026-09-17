@@ -1,4 +1,4 @@
-    #!/usr/bin/env python3
+#!/usr/bin/env python3
 
 #================================================================
 # File name: pure_pursuit_ros2.py
