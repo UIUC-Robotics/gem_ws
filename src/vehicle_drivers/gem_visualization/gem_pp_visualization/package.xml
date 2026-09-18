@@ -1,22 +1,25 @@
 <?xml version="1.0"?>
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
-  <name>gem_odometry_control</name>
+  <name>gem_pp_visualization</name>
   <version>0.0.0</version>
   <description>
-    Wheel encoder + IMU + GPS fused local odometry (robot_localization) and a
-    pure pursuit / waypoint recorder variant that consumes the fused odometry
-    instead of raw GNSS fixes.
+    Shared RViz visualization for pure pursuit: full recorded track, the
+    path actually driven so far, the current pursuit target waypoint, and
+    the lat/lon origin used for the local frame. Works with both
+    gem_gnss_control (GNSS-direct) and gem_odometry_control (fused
+    wheel+IMU+GPS) pure pursuit variants - it only needs a nav_msgs/Odometry
+    pose topic and a geometry_msgs/PointStamped target topic, both of which
+    are common conventions the two packages publish.
   </description>
   <maintainer email="gem@todo.todo">gem</maintainer>
   <license>TODO: License declaration</license>
 
   <depend>rclpy</depend>
-  <depend>sensor_msgs</depend>
   <depend>nav_msgs</depend>
   <depend>geometry_msgs</depend>
-  <depend>pacmod2_msgs</depend>
-  <exec_depend>robot_localization</exec_depend>
+  <depend>visualization_msgs</depend>
+  <depend>tf2_ros</depend>
 
   <test_depend>ament_copyright</test_depend>
   <test_depend>ament_flake8</test_depend>

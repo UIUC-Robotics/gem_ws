@@ -23,6 +23,8 @@ from std_msgs.msg import Bool
 from pacmod2_msgs.msg import PositionWithSpeed, VehicleSpeedRpt, GlobalCmd, SystemCmdFloat, SystemCmdInt
 from sensor_msgs.msg import NavSatFix
 from septentrio_gnss_driver.msg import INSNavGeod
+from nav_msgs.msg import Odometry
+from geometry_msgs.msg import PointStamped
 
 # Initialize pygame for joystick
 pygame.init()
@@ -76,6 +78,10 @@ class OnlineFilter:
     def get_data(self, data):
         filted, self.z = signal.lfilter(self.b, self.a, [data], zi=self.z)
         return filted[0]
+
+
+def quaternion_from_yaw(yaw):
+    return (0.0, 0.0, math.sin(yaw / 2.0), math.cos(yaw / 2.0))
 
 
 class PurePursuit(Node):
@@ -144,6 +150,13 @@ class PurePursuit(Node):
         self.accel_pub = self.create_publisher(SystemCmdFloat, '/pacmod/accel_cmd', 10)
         self.turn_pub = self.create_publisher(SystemCmdInt, '/pacmod/turn_cmd', 10)
         self.steer_pub = self.create_publisher(PositionWithSpeed, '/pacmod/steering_cmd', 10)
+
+        # Visualization publishers (consumed by gem_pp_visualization).
+        # local_odom carries this node's own GNSS/INS-derived pose estimate
+        # (this package has no separate localization node, unlike
+        # gem_odometry_control's ekf_node, so it publishes its own).
+        self.local_odom_pub = self.create_publisher(Odometry, '/gem/local_odom', 10)
+        self.target_point_pub = self.create_publisher(PointStamped, '/pure_pursuit/target_point', 10)
 
         # Commands
         self.global_cmd = GlobalCmd(enable=False, clear_override = True)
@@ -242,8 +255,37 @@ class PurePursuit(Node):
         y = local_y - self.offset * math.sin(yaw)
         return x, y, yaw
 
+    def publish_local_odom(self, x, y, yaw):
+        odom = Odometry()
+        odom.header.stamp = self.get_clock().now().to_msg()
+        odom.header.frame_id = 'map'
+        odom.child_frame_id = 'base_link'
+        odom.pose.pose.position.x = x
+        odom.pose.pose.position.y = y
+        qx, qy, qz, qw = quaternion_from_yaw(yaw)
+        odom.pose.pose.orientation.x = qx
+        odom.pose.pose.orientation.y = qy
+        odom.pose.pose.orientation.z = qz
+        odom.pose.pose.orientation.w = qw
+        odom.twist.twist.linear.x = self.speed
+        self.local_odom_pub.publish(odom)
+
+    def publish_target_point(self, x, y):
+        pt = PointStamped()
+        pt.header.stamp = self.get_clock().now().to_msg()
+        pt.header.frame_id = 'map'
+        pt.point.x = x
+        pt.point.y = y
+        self.target_point_pub.publish(pt)
+
     def control_loop(self):
         joy_enable = self.check_joystick_enable()
+
+        # Always publish the current pose estimate (for RViz/gem_pp_visualization),
+        # regardless of enable state, so localization can be inspected even
+        # before engaging autonomous control.
+        curr_x, curr_y, curr_yaw = self.get_gem_state()
+        self.publish_local_odom(curr_x, curr_y, curr_yaw)
 
         if joy_enable == 1 and not self.pacmod_enable:
             # joystick enable when vehicle disbaled 
@@ -280,8 +322,6 @@ class PurePursuit(Node):
             self.path_points_x = np.array(self.path_points_lon_x)
             self.path_points_y = np.array(self.path_points_lat_y)
 
-            curr_x, curr_y, curr_yaw = self.get_gem_state()
-            
             for i in range(self.wp_size):
                 self.dist_arr[i] = self.dist((self.path_points_x[i], self.path_points_y[i]), (curr_x, curr_y))
 
@@ -295,6 +335,7 @@ class PurePursuit(Node):
             target_x = self.path_points_x[self.goal]
             target_y = self.path_points_y[self.goal]
             target_yaw = self.path_points_heading[self.goal]
+            self.publish_target_point(target_x, target_y)
             alpha = math.atan2(target_y - curr_y, target_x - curr_x) - curr_yaw
             curvature = 0.0 if self.speed < 0.2 else 2.0 * math.sin(alpha) / ld
             steering_angle = math.atan(self.wheelbase * curvature)

@@ -21,6 +21,7 @@ from rclpy.node import Node
 from std_msgs.msg import Bool
 from pacmod2_msgs.msg import PositionWithSpeed, GlobalCmd, SystemCmdFloat, SystemCmdInt
 from nav_msgs.msg import Odometry
+from geometry_msgs.msg import PointStamped
 
 
 class PID:
@@ -123,6 +124,10 @@ class PurePursuitOdom(Node):
         self.brake_pub = self.create_publisher(SystemCmdFloat, '/pacmod/brake_cmd', 10)
         self.accel_pub = self.create_publisher(SystemCmdFloat, '/pacmod/accel_cmd', 10)
         self.steer_pub = self.create_publisher(PositionWithSpeed, '/pacmod/steering_cmd', 10)
+        # Consumed by gem_pp_visualization to highlight which waypoint is
+        # currently being pursued, regardless of which pure_pursuit variant
+        # (GNSS-direct or fused-odometry) is running.
+        self.target_point_pub = self.create_publisher(PointStamped, '/pure_pursuit/target_point', 10)
 
         self.global_cmd = GlobalCmd(enable=False, clear_override=True)
         self.gear_cmd = SystemCmdInt(command=2)
@@ -162,6 +167,14 @@ class PurePursuitOdom(Node):
     def enable_callback(self, msg):
         self.pacmod_enable = msg.data
 
+    def publish_target_point(self, x, y):
+        pt = PointStamped()
+        pt.header.stamp = self.get_clock().now().to_msg()
+        pt.header.frame_id = 'map'
+        pt.point.x = x
+        pt.point.y = y
+        self.target_point_pub.publish(pt)
+
     def dist(self, p1, p2):
         return math.hypot(p1[0] - p2[0], p1[1] - p2[1])
 
@@ -172,7 +185,7 @@ class PurePursuitOdom(Node):
         return round(steer_angle if f_angle >= 0 else -steer_angle, 2)
 
     def control_loop(self):
-        if not self.have_odom or not self.pacmod_enable:
+        if not self.have_odom:
             return
 
         curr_x, curr_y, curr_yaw = self.curr_x, self.curr_y, self.curr_yaw
@@ -190,6 +203,13 @@ class PurePursuitOdom(Node):
 
         target_x = self.path_points_x[self.goal]
         target_y = self.path_points_y[self.goal]
+        self.publish_target_point(target_x, target_y)
+
+        # Only actuate once PACMod is actually enabled - target/pose above
+        # are still published continuously for visualization purposes.
+        if not self.pacmod_enable:
+            return
+
         alpha = math.atan2(target_y - curr_y, target_x - curr_x) - curr_yaw
         curvature = 0.0 if self.speed < 0.2 else 2.0 * math.sin(alpha) / ld
         steering_angle = math.atan(self.wheelbase * curvature)
