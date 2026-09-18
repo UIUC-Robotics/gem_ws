@@ -90,6 +90,7 @@ class PurePursuit(Node):
         self.declare_parameter('origin_lon', -88.2359639)
         self.declare_parameter('desired_speed', 2.0)
         self.declare_parameter('max_acceleration', 0.5)
+        self.declare_parameter('waypoints_file', 'track.csv')
 
         self.declare_parameter('pid/kp', 0.6)
         self.declare_parameter('pid/ki', 0.0)
@@ -116,7 +117,7 @@ class PurePursuit(Node):
         self.olon = self.get_parameter('origin_lon').value
 
         self.desired_speed = min(5.0,self.get_parameter('desired_speed').value) # desired speed capped at 5 m/s
-        self.max_accel = min(2.0, self.get_parameter('max_acceleration').value) # max acceleration capped at 2 m/s^2
+        self.max_accel = min(2.0, self.get_parameter('max_accel').value) # max acceleration capped at 2 m/s^2
         self.pid_speed = PID(
             kp=self.get_parameter('pid/kp').value,
             ki=self.get_parameter('pid/ki').value,
@@ -182,8 +183,18 @@ class PurePursuit(Node):
         self.pacmod_enable = msg.data
 
     def read_waypoints(self):
-        dirname = os.path.dirname(__file__)
-        filename = os.path.join(dirname, '../waypoints/track.csv')
+        waypoints_file = self.get_parameter('waypoints_file').value
+        if os.path.isabs(waypoints_file):
+            filename = waypoints_file
+        else:
+            # os.path.realpath() resolves through the symlink that
+            # `colcon build --symlink-install` creates for this module file,
+            # so this ends up pointing at waypoints/ in the source checkout
+            # (src/.../gem_gnss_control/waypoints) instead of a copy inside
+            # build/ or install/.
+            dirname = os.path.dirname(os.path.realpath(__file__))
+            filename = os.path.join(dirname, '../waypoints', waypoints_file)
+        self.get_logger().info(f"Loading waypoints from: {filename}")
         with open(filename) as f:
             path_points = [tuple(line) for line in csv.reader(f)]
         self.path_points_lon_x = [float(p[0]) for p in path_points]

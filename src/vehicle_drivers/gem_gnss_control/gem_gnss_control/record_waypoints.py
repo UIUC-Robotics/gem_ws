@@ -52,7 +52,12 @@ class WaypointRecorder(Node):
         if os.path.isabs(output_file):
             self.output_path = output_file
         else:
-            dirname = os.path.dirname(__file__)
+            # os.path.realpath() resolves through the symlink that
+            # `colcon build --symlink-install` creates for this module file,
+            # so this ends up pointing at the waypoints/ folder in the
+            # source checkout (src/.../gem_gnss_control/waypoints) instead
+            # of a copy inside build/ or install/.
+            dirname = os.path.dirname(os.path.realpath(__file__))
             self.output_path = os.path.join(dirname, '../waypoints', output_file)
         self.output_path = os.path.abspath(self.output_path)
 
