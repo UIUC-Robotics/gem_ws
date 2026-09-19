@@ -19,7 +19,7 @@ import rclpy
 from rclpy.node import Node
 
 from std_msgs.msg import Bool
-from pacmod2_msgs.msg import PositionWithSpeed, GlobalCmd, SystemCmdFloat, SystemCmdInt
+from pacmod2_msgs.msg import PositionWithSpeed, GlobalCmd, SystemCmdFloat, SystemCmdInt, GlobalRpt
 from nav_msgs.msg import Odometry
 from geometry_msgs.msg import PointStamped
 
@@ -115,9 +115,15 @@ class PurePursuitOdom(Node):
         self.speed = 0.0
         self.have_odom = False
         self.pacmod_enable = False
+        self.pacmod_override_active = False
 
         self.create_subscription(Odometry, odom_topic, self.odom_callback, 10)
         self.create_subscription(Bool, '/pacmod/enabled', self.enable_callback, 10)
+        # The bare pacmod2 driver only relays this flag - it does not react
+        # to it itself. We watch it so manually grabbing the wheel/pedals
+        # disengages autonomous control the same way it does under
+        # joystick teleop (pacmod2_game_control_exec).
+        self.create_subscription(GlobalRpt, '/pacmod/global_rpt', self.global_rpt_callback, 10)
 
         self.global_pub = self.create_publisher(GlobalCmd, '/pacmod/global_cmd', 10)
         self.gear_pub = self.create_publisher(SystemCmdInt, '/pacmod/shift_cmd', 10)
@@ -167,6 +173,9 @@ class PurePursuitOdom(Node):
     def enable_callback(self, msg):
         self.pacmod_enable = msg.data
 
+    def global_rpt_callback(self, msg):
+        self.pacmod_override_active = msg.override_active
+
     def publish_target_point(self, x, y):
         pt = PointStamped()
         pt.header.stamp = self.get_clock().now().to_msg()
@@ -186,6 +195,18 @@ class PurePursuitOdom(Node):
 
     def control_loop(self):
         if not self.have_odom:
+            return
+
+        if self.pacmod_override_active:
+            # Operator physically grabbed the steering wheel/brake/accelerator.
+            # See gem_gnss_control/pure_pursuit.py for the full explanation -
+            # the bare pacmod2 driver only reports this, it doesn't react to
+            # it, so we disengage ourselves instead of fighting the manual input.
+            self.global_cmd.enable = False
+            self.global_pub.publish(self.global_cmd)
+            self.get_logger().warn(
+                'Manual override detected on PACMod - disengaging autonomous control',
+                throttle_duration_sec=1.0)
             return
 
         curr_x, curr_y, curr_yaw = self.curr_x, self.curr_y, self.curr_yaw

@@ -20,7 +20,7 @@ import rclpy
 from rclpy.node import Node
 
 from std_msgs.msg import Bool
-from pacmod2_msgs.msg import PositionWithSpeed, VehicleSpeedRpt, GlobalCmd, SystemCmdFloat, SystemCmdInt
+from pacmod2_msgs.msg import PositionWithSpeed, VehicleSpeedRpt, GlobalCmd, SystemCmdFloat, SystemCmdInt, GlobalRpt
 from sensor_msgs.msg import NavSatFix
 from septentrio_gnss_driver.msg import INSNavGeod
 from nav_msgs.msg import Odometry
@@ -142,6 +142,13 @@ class PurePursuit(Node):
         self.create_subscription(INSNavGeod, '/insnavgeod', self.ins_callback, 10)
         self.create_subscription(Bool, '/pacmod/enabled', self.enable_callback, 10)
         self.create_subscription(VehicleSpeedRpt, '/pacmod/vehicle_speed_rpt', self.speed_callback, 10)
+        # The bare pacmod2 driver only relays this flag - unlike
+        # pacmod2_game_control_exec (used by dbw_joystick.launch.py), it
+        # does not react to it. We watch it ourselves so that manually
+        # grabbing the wheel/pedals disengages autonomous control the same
+        # way it does under joystick teleop.
+        self.create_subscription(GlobalRpt, '/pacmod/global_rpt', self.global_rpt_callback, 10)
+        self.pacmod_override_active = False
 
         # Publishers
         self.global_pub = self.create_publisher(GlobalCmd, '/pacmod/global_cmd', 10)
@@ -191,6 +198,9 @@ class PurePursuit(Node):
 
     def speed_callback(self, msg):
         self.speed = self.speed_filter.get_data(msg.vehicle_speed)
+
+    def global_rpt_callback(self, msg):
+        self.pacmod_override_active = msg.override_active
 
     def enable_callback(self, msg):
         self.pacmod_enable = msg.data
@@ -286,6 +296,20 @@ class PurePursuit(Node):
         # before engaging autonomous control.
         curr_x, curr_y, curr_yaw = self.get_gem_state()
         self.publish_local_odom(curr_x, curr_y, curr_yaw)
+
+        if self.pacmod_override_active:
+            # Operator physically grabbed the steering wheel/brake/accelerator.
+            # The bare pacmod2 driver only reports this (override_active in
+            # /pacmod/global_rpt) - it does not react to it. Under joystick
+            # teleop, pacmod2_game_control_exec is what actually disengages
+            # on override; since it isn't running here, we do it ourselves so
+            # autonomous control never fights a manual takeover.
+            self.global_cmd.enable = False
+            self.global_pub.publish(self.global_cmd)
+            self.get_logger().warn(
+                'Manual override detected on PACMod - disengaging autonomous control',
+                throttle_duration_sec=1.0)
+            return
 
         if joy_enable == 1 and not self.pacmod_enable:
             # joystick enable when vehicle disbaled 
