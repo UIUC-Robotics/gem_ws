@@ -4,7 +4,7 @@ pure_pursuit_odom:
     look_ahead: 5.0
     wheelbase: 2.57          # 1.75 for e2
     desired_speed: 2.0
-    max_acceleration: 0.5
+    max_accel: 0.5
     odom_topic: '/odometry/filtered'
     waypoints_file: 'track_odom.csv'
     pid:

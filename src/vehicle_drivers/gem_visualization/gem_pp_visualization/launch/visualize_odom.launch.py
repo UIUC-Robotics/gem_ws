@@ -21,7 +21,7 @@ def generate_launch_description():
 
     this_dir = os.path.dirname(os.path.realpath(__file__))
     odom_waypoints_dir = os.path.abspath(
-        os.path.join(this_dir, '..', '..', 'gem_odometry_control', 'waypoints'))
+        os.path.join(this_dir, '..', '..', '..', 'gem_odometry_control', 'waypoints'))
     default_waypoints_file = os.path.join(
         odom_waypoints_dir, pp_params.get('waypoints_file', 'track_odom.csv'))
 

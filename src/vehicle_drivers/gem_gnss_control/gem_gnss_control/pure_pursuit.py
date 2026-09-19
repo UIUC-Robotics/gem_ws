@@ -95,7 +95,7 @@ class PurePursuit(Node):
         self.declare_parameter('origin_lat', 40.0927422)
         self.declare_parameter('origin_lon', -88.2359639)
         self.declare_parameter('desired_speed', 2.0)
-        self.declare_parameter('max_acceleration', 0.5)
+        self.declare_parameter('max_accel', 0.5)
         self.declare_parameter('waypoints_file', 'track.csv')
 
         self.declare_parameter('pid/kp', 0.6)
@@ -296,6 +296,7 @@ class PurePursuit(Node):
         # before engaging autonomous control.
         curr_x, curr_y, curr_yaw = self.get_gem_state()
         self.publish_local_odom(curr_x, curr_y, curr_yaw)
+        self.get_logger().info(f"Current pose: ({curr_x:.2f}, {curr_y:.2f}, {curr_yaw:.2f})")
 
         if self.pacmod_override_active:
             # Operator physically grabbed the steering wheel/brake/accelerator.
@@ -384,7 +385,7 @@ class PurePursuit(Node):
             self.global_cmd.enable = True
             self.global_pub.publish(self.global_cmd)
 
-            self.get_logger().info(f"Pos: ({curr_x:.2f}, {curr_y:.2f}), Target: ({target_x:.2f}, {target_y:.2f}), Speed: {self.speed:.2f}, Throttle: {throttle_cmd:.2f}, Steering: {steering_wheel_angle:.2f}")
+            self.get_logger().info(f"Target: ({target_x:.2f}, {target_y:.2f}), Speed: {self.speed:.2f}, Throttle: {throttle_cmd:.2f}, Steering: {steering_wheel_angle:.2f}")
 
 def main(args=None):
     rclpy.init(args=args)

@@ -78,7 +78,7 @@ class PurePursuitOdom(Node):
         self.declare_parameter('look_ahead', 5.0)
         self.declare_parameter('wheelbase', 2.57)
         self.declare_parameter('desired_speed', 2.0)
-        self.declare_parameter('max_acceleration', 0.5)
+        self.declare_parameter('max_accel', 0.5)
         self.declare_parameter('odom_topic', '/odometry/filtered')
         self.declare_parameter('waypoints_file', 'track_odom.csv')
 
@@ -95,7 +95,7 @@ class PurePursuitOdom(Node):
         self.look_ahead = self.get_parameter('look_ahead').value
         self.wheelbase = self.get_parameter('wheelbase').value
         self.desired_speed = min(5.0, self.get_parameter('desired_speed').value)
-        self.max_accel = min(2.0, self.get_parameter('max_acceleration').value)
+        self.max_accel = min(2.0, self.get_parameter('max_accel').value)
         odom_topic = self.get_parameter('odom_topic').value
 
         self.pid_speed = PID(
@@ -210,6 +210,7 @@ class PurePursuitOdom(Node):
             return
 
         curr_x, curr_y, curr_yaw = self.curr_x, self.curr_y, self.curr_yaw
+        self.get_logger().info(f"Current pose: ({curr_x:.2f}, {curr_y:.2f}, {curr_yaw:.2f})")
 
         for i in range(self.wp_size):
             self.dist_arr[i] = self.dist(
@@ -255,8 +256,7 @@ class PurePursuitOdom(Node):
         self.global_pub.publish(self.global_cmd)
 
         self.get_logger().info(
-            f"Pos: ({curr_x:.2f}, {curr_y:.2f}), Target: ({target_x:.2f}, {target_y:.2f}), "
-            f"Speed: {self.speed:.2f}, Throttle: {throttle_cmd:.2f}, Steering: {steering_wheel_angle:.2f}"
+            f"Target: ({target_x:.2f}, {target_y:.2f}), Speed: {self.speed:.2f}, Throttle: {throttle_cmd:.2f}, Steering: {steering_wheel_angle:.2f}"
         )
 
 

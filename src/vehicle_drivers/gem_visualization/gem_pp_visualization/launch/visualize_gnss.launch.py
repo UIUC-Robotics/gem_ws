@@ -26,7 +26,7 @@ def generate_launch_description():
     # since these packages are siblings under src/vehicle_drivers/).
     this_dir = os.path.dirname(os.path.realpath(__file__))
     gnss_waypoints_dir = os.path.abspath(
-        os.path.join(this_dir, '..', '..', 'gem_gnss_control', 'waypoints'))
+        os.path.join(this_dir, '..', '..','..', 'gem_gnss_control', 'waypoints'))
     default_waypoints_file = os.path.join(
         gnss_waypoints_dir, pp_params.get('waypoints_file', 'track.csv'))
 

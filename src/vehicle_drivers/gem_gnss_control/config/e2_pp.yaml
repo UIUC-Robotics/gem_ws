@@ -9,7 +9,7 @@ pure_pursuit:
     origin_lon: -88.235992
     desired_speed: 2.0
     max_accel: 0.5
-    waypoints_file: 'track.csv'
+    waypoints_file: 'my_track.csv'
     pid:
       kp: 0.6
       ki: 0.0
