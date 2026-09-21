@@ -19,6 +19,13 @@ def generate_launch_description():
         
         Node(
             package='gem_gnss_control',
+            executable='joystick_command',
+            name='joystick_command',
+            output='screen'
+        ),
+        
+        Node(
+            package='gem_gnss_control',
             executable='pure_pursuit',  # or 'pure_pursuit_node' if you updated setup.py
             name='pure_pursuit',
             output='screen',

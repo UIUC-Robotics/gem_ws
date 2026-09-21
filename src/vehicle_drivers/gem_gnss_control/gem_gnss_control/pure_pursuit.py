@@ -94,7 +94,7 @@ class PurePursuit(Node):
         self.declare_parameter('offset', 1.26)
         self.declare_parameter('origin_lat', 40.0927422)
         self.declare_parameter('origin_lon', -88.2359639)
-        self.declare_parameter('desired_speed', 2.0)
+        self.declare_parameter('desired_speed', 2.6)
         self.declare_parameter('max_accel', 0.5)
         self.declare_parameter('waypoints_file', 'track.csv')
 
@@ -142,13 +142,10 @@ class PurePursuit(Node):
         self.create_subscription(INSNavGeod, '/insnavgeod', self.ins_callback, 10)
         self.create_subscription(Bool, '/pacmod/enabled', self.enable_callback, 10)
         self.create_subscription(VehicleSpeedRpt, '/pacmod/vehicle_speed_rpt', self.speed_callback, 10)
-        # The bare pacmod2 driver only relays this flag - unlike
-        # pacmod2_game_control_exec (used by dbw_joystick.launch.py), it
-        # does not react to it. We watch it ourselves so that manually
-        # grabbing the wheel/pedals disengages autonomous control the same
-        # way it does under joystick teleop.
+
         self.create_subscription(GlobalRpt, '/pacmod/global_rpt', self.global_rpt_callback, 10)
         self.pacmod_override_active = False
+        self.create_subscription(Float32, '/brake_value', self.brake_callback, 10)
 
         # Publishers
         self.global_pub = self.create_publisher(GlobalCmd, '/pacmod/global_cmd', 10)
@@ -158,7 +155,6 @@ class PurePursuit(Node):
         self.turn_pub = self.create_publisher(SystemCmdInt, '/pacmod/turn_cmd', 10)
         self.steer_pub = self.create_publisher(PositionWithSpeed, '/pacmod/steering_cmd', 10)
 
-        # Visualization publishers (consumed by gem_pp_visualization).
         # local_odom carries this node's own GNSS/INS-derived pose estimate
         # (this package has no separate localization node, unlike
         # gem_odometry_control's ekf_node, so it publishes its own).
@@ -183,7 +179,6 @@ class PurePursuit(Node):
         self.gem_enable = False
         self.pacmod_enable = False
 
-        
 
         self.dist_arr = np.zeros(len(self.path_points_lon_x))
 
@@ -198,6 +193,9 @@ class PurePursuit(Node):
 
     def speed_callback(self, msg):
         self.speed = self.speed_filter.get_data(msg.vehicle_speed)
+
+    def brake_callback(self, msg):
+        self.brake_value = msg.data
 
     def global_rpt_callback(self, msg):
         self.pacmod_override_active = msg.override_active
@@ -251,6 +249,7 @@ class PurePursuit(Node):
             return 2
         if lb and rb:
             # enable
+            self.get_logger().warn("Joystick enabled")
             return 1
         elif lb and not rb:
             # disable
@@ -296,15 +295,11 @@ class PurePursuit(Node):
         # before engaging autonomous control.
         curr_x, curr_y, curr_yaw = self.get_gem_state()
         self.publish_local_odom(curr_x, curr_y, curr_yaw)
-        self.get_logger().info(f"Current pose: ({curr_x:.2f}, {curr_y:.2f}, {curr_yaw:.2f})")
 
         if self.pacmod_override_active:
             # Operator physically grabbed the steering wheel/brake/accelerator.
             # The bare pacmod2 driver only reports this (override_active in
-            # /pacmod/global_rpt) - it does not react to it. Under joystick
-            # teleop, pacmod2_game_control_exec is what actually disengages
-            # on override; since it isn't running here, we do it ourselves so
-            # autonomous control never fights a manual takeover.
+            # /pacmod/global_rpt) - it does not react to it. 
             self.global_cmd.enable = False
             self.global_pub.publish(self.global_cmd)
             self.get_logger().warn(
@@ -378,14 +373,14 @@ class PurePursuit(Node):
             throttle_cmd = max(0.0, min(throttle_cmd, self.max_accel))
 
             self.accel_cmd.command = throttle_cmd
-            self.brake_cmd.command = 0.0
+            self.brake_cmd.command = max(0.0, min(self.brake_value, 1.0))
             self.accel_pub.publish(self.accel_cmd)
             self.brake_pub.publish(self.brake_cmd)
 
             self.global_cmd.enable = True
             self.global_pub.publish(self.global_cmd)
 
-            self.get_logger().info(f"Target: ({target_x:.2f}, {target_y:.2f}), Speed: {self.speed:.2f}, Throttle: {throttle_cmd:.2f}, Steering: {steering_wheel_angle:.2f}")
+            self.get_logger().info(f"Current pose: ({curr_x:.2f}, {curr_y:.2f}, {curr_yaw:.2f}), Target: ({target_x:.2f}, {target_y:.2f}), Speed: {self.speed:.2f}, Throttle: {throttle_cmd:.2f}, Steering: {steering_wheel_angle:.2f}")
 
 def main(args=None):
     rclpy.init(args=args)

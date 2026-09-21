@@ -7,7 +7,7 @@ pure_pursuit:
     offset: 1.26
     origin_lat: 40.092857
     origin_lon: -88.235992
-    desired_speed: 2.0
+    desired_speed: 2.6
     max_accel: 0.5
     waypoints_file: 'track.csv'
     pid:

@@ -124,12 +124,14 @@ class TrackVisualizerNode(Node):
 
         path = Path()
         path.header.frame_id = self.map_frame
-        path.header.stamp = self.get_clock().now().to_msg()
+        now= self.get_clock().now().to_msg()
+        path.header.stamp = now
 
         for row in rows:
             x, y, heading_deg = float(row[0]), float(row[1]), float(row[2])
             pose = PoseStamped()
             pose.header.frame_id = self.map_frame
+            pose.header.stamp = now
             pose.pose.position.x = x
             pose.pose.position.y = y
             qx, qy, qz, qw = quaternion_from_yaw(math.radians(heading_deg))

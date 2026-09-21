@@ -1,8 +1,9 @@
 import os
 import yaml
+from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch import LaunchDescription
 from launch_ros.actions import Node
-from launch.actions import DeclareLaunchArgument
+from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription
 from launch.substitutions import LaunchConfiguration
 from ament_index_python.packages import get_package_share_directory
 
@@ -41,6 +42,12 @@ def generate_launch_description():
     target_topic_arg = DeclareLaunchArgument(
         'target_topic', default_value='/pure_pursuit/target_point')
 
+    rviz_display_launch = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource([os.path.join(
+            get_package_share_directory('basic_launch'), 'launch'),
+            '/rviz_display.launch.py'])
+    )
+
     return LaunchDescription([
         waypoints_file_arg,
         origin_lat_arg,
@@ -62,5 +69,6 @@ def generate_launch_description():
                 'base_frame': 'base_link',
                 'publish_tf': True,
             }]
-        )
+        ),
+        rviz_display_launch
     ])
