@@ -97,7 +97,7 @@ class PurePursuit(Node):
         self.declare_parameter('desired_speed', 2.6)
         self.declare_parameter('max_accel', 0.5)
         self.declare_parameter('waypoints_file', 'track.csv')
-        self.declare_parameter('stop_distance', 1.0)
+        self.declare_parameter('stop_distance', 3.0)
 
         self.declare_parameter('pid/kp', 0.6)
         self.declare_parameter('pid/ki', 0.0)
@@ -182,7 +182,8 @@ class PurePursuit(Node):
         self.pacmod_enable = False
         self.is_stopping = False
         self.stop_start_time = 0.0
-        self.ramp_duration = 2.5  # Duration for smooth braking in seconds
+        self.ramp_duration = 2.0  # Duration for smooth braking in seconds
+        self.brake_value = 0.0
 
 
         self.dist_arr = np.zeros(len(self.path_points_lon_x))
@@ -372,7 +373,7 @@ class PurePursuit(Node):
                 self.accel_cmd.command = 0.0
                 self.accel_pub.publish(self.accel_cmd)
 
-                # 2. Smoothly ramp brake from 0.0 to 0.5 max over ramp_duration (2.5s)
+                # 2. Smoothly ramp brake from 0.0 to 0.5 max over ramp_duration (2.0s)
                 max_stop_brake = 0.5
                 brake_target = min(max_stop_brake, max_stop_brake * (elapsed / self.ramp_duration))
                 self.brake_cmd.command = brake_target

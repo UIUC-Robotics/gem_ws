@@ -17,12 +17,6 @@ os.environ['RCUTILS_CONSOLE_OUTPUT_FORMAT'] = '{time}: [{name}] [{severity}]\t{m
 # Start as component:
 
 def generate_launch_description():
-    
-    rviz_display_launch = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource([os.path.join(
-            get_package_share_directory('basic_launch'), 'launch'),
-            '/rviz_display.launch.py'])
-    )
 
     gem_gnss_image_node = Node(
         package='gem_gnss_image',
@@ -65,4 +59,4 @@ def generate_launch_description():
         output='screen'
     )
 
-    return launch.LaunchDescription([arg_file_name, arg_file_path, gem_gnss_image_node, rviz_display_launch, container])
+    return launch.LaunchDescription([arg_file_name, arg_file_path, gem_gnss_image_node, container])
