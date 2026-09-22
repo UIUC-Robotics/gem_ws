@@ -28,7 +28,6 @@ setup(
             'pure_pursuit = gem_gnss_control.pure_pursuit:main',
             'pure_pursuit_test = gem_gnss_control.pure_pursuit_test:main',
             'record_waypoints = gem_gnss_control.record_waypoints:main',
-            'joystick_command = gem_gnss_control.joystick_command:main',
         ],
     },
 )

@@ -97,7 +97,6 @@ class PurePursuit(Node):
         self.declare_parameter('desired_speed', 2.6)
         self.declare_parameter('max_accel', 0.5)
         self.declare_parameter('waypoints_file', 'track.csv')
-        self.declare_parameter('stop_distance', 3.0)
 
         self.declare_parameter('pid/kp', 0.6)
         self.declare_parameter('pid/ki', 0.0)
@@ -122,7 +121,6 @@ class PurePursuit(Node):
         self.offset = self.get_parameter('offset').value
         self.olat = self.get_parameter('origin_lat').value
         self.olon = self.get_parameter('origin_lon').value
-        self.stop_dist_threshold = self.get_parameter('stop_distance').value
 
         self.desired_speed = min(5.0,self.get_parameter('desired_speed').value) # desired speed capped at 5 m/s
         self.max_accel = min(2.0, self.get_parameter('max_accel').value) # max acceleration capped at 2 m/s^2
@@ -144,10 +142,6 @@ class PurePursuit(Node):
         self.create_subscription(INSNavGeod, '/insnavgeod', self.ins_callback, 10)
         self.create_subscription(Bool, '/pacmod/enabled', self.enable_callback, 10)
         self.create_subscription(VehicleSpeedRpt, '/pacmod/vehicle_speed_rpt', self.speed_callback, 10)
-
-        self.create_subscription(GlobalRpt, '/pacmod/global_rpt', self.global_rpt_callback, 10)
-        self.pacmod_override_active = False
-        self.create_subscription(Float32, '/brake_value', self.brake_callback, 10)
 
         # Publishers
         self.global_pub = self.create_publisher(GlobalCmd, '/pacmod/global_cmd', 10)
@@ -180,10 +174,6 @@ class PurePursuit(Node):
         self.speed = 0.0
         self.gem_enable = False
         self.pacmod_enable = False
-        self.is_stopping = False
-        self.stop_start_time = 0.0
-        self.ramp_duration = 2.0  # Duration for smooth braking in seconds
-        self.brake_value = 0.0
 
 
         self.dist_arr = np.zeros(len(self.path_points_lon_x))
@@ -199,12 +189,6 @@ class PurePursuit(Node):
 
     def speed_callback(self, msg):
         self.speed = self.speed_filter.get_data(msg.vehicle_speed)
-
-    def brake_callback(self, msg):
-        self.brake_value = msg.data
-
-    def global_rpt_callback(self, msg):
-        self.pacmod_override_active = msg.override_active
 
     def enable_callback(self, msg):
         self.pacmod_enable = msg.data
@@ -302,17 +286,6 @@ class PurePursuit(Node):
         curr_x, curr_y, curr_yaw = self.get_gem_state()
         self.publish_local_odom(curr_x, curr_y, curr_yaw)
 
-        if self.pacmod_override_active:
-            # Operator physically grabbed the steering wheel/brake/accelerator.
-            # The bare pacmod2 driver only reports this (override_active in
-            # /pacmod/global_rpt) - it does not react to it. 
-            self.global_cmd.enable = False
-            self.global_pub.publish(self.global_cmd)
-            self.get_logger().warn(
-                'Manual override detected on PACMod - disengaging autonomous control',
-                throttle_duration_sec=1.0)
-            return
-
         if joy_enable == 1 and not self.pacmod_enable:
             # joystick enable when vehicle disbaled 
             self.global_cmd.enable = True
@@ -348,56 +321,7 @@ class PurePursuit(Node):
             self.path_points_x = np.array(self.path_points_lon_x)
             self.path_points_y = np.array(self.path_points_lat_y)
 
-            # Check distance to the FINAL waypoint in the track
-            end_x = self.path_points_x[-1]
-            end_y = self.path_points_y[-1]
-            dist_to_end = self.dist((end_x, end_y), (curr_x, curr_y))
-
-            # Trigger stopping sequence if close to final waypoint or already in stopping sequence
-            if dist_to_end <= self.stop_dist_threshold or self.is_stopping:
-                now_sec = self.get_clock().now().nanoseconds * 1e-9
-
-                # First iteration entering stop state
-                if not self.is_stopping:
-                    self.is_stopping = True
-                    self.stop_start_time = now_sec
-                    self.pid_speed.reset()
-                    self.get_logger().warn(
-                        f"Final waypoint reached ({dist_to_end:.2f}m). Initiating smooth braking sequence..."
-                    )
-
-                # Elapsed time since stopping triggered
-                elapsed = now_sec - self.stop_start_time
-
-                # 1. Zero accelerator command
-                self.accel_cmd.command = 0.0
-                self.accel_pub.publish(self.accel_cmd)
-
-                # 2. Smoothly ramp brake from 0.0 to 0.5 max over ramp_duration (2.0s)
-                max_stop_brake = 0.5
-                brake_target = min(max_stop_brake, max_stop_brake * (elapsed / self.ramp_duration))
-                self.brake_cmd.command = brake_target
-                self.brake_pub.publish(self.brake_cmd)
-
-                # 3. Center steering wheel during stop
-                self.steer_cmd.angular_position = 0.0
-                self.steer_pub.publish(self.steer_cmd)
-
-                # 4. Gear shifting logic: Keep FORWARD (3) while moving, shift to NEUTRAL (2) once stationary
-                if self.speed < 0.05:  # Vehicle is fully stopped
-                    self.gear_cmd.command = 2  # NEUTRAL
-                    self.get_logger().info("Vehicle completely stopped. Gear shifted to NEUTRAL.", throttle_duration_sec=2.0)
-                else:
-                    self.gear_cmd.command = 3  # Keep FORWARD until stopped
-                    self.get_logger().info(f"Decelerating... Speed: {self.speed:.2f} m/s, Brake: {brake_target:.2f}", throttle_duration_sec=0.5)
-
-                self.gear_pub.publish(self.gear_cmd)
-
-                # Maintain PACMod enable so brake pressure remains active
-                self.global_cmd.enable = True
-                self.global_pub.publish(self.global_cmd)
-
-                return
+            curr_x, curr_y, curr_yaw = self.get_gem_state()
 
             for i in range(self.wp_size):
                 self.dist_arr[i] = self.dist((self.path_points_x[i], self.path_points_y[i]), (curr_x, curr_y))
@@ -430,7 +354,7 @@ class PurePursuit(Node):
             throttle_cmd = max(0.0, min(throttle_cmd, self.max_accel))
 
             self.accel_cmd.command = throttle_cmd
-            self.brake_cmd.command = max(0.0, min(self.brake_value, 1.0))
+            self.brake_cmd.command = 0.0
             self.accel_pub.publish(self.accel_cmd)
             self.brake_pub.publish(self.brake_cmd)
 

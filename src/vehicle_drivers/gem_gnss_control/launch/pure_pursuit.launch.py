@@ -16,19 +16,6 @@ def generate_launch_description():
 
     return LaunchDescription([
         # LogInfo(msg=f'Using Vehicle config: {vehicle_env}'),
-        Node(
-            package='Joy',
-            executable='joy_node',
-            name='joy_node',
-            output='screen'
-        ),
-        
-        Node(
-            package='gem_gnss_control',
-            executable='joystick_command',
-            name='joystick_command',
-            output='screen'
-        ),
         
         Node(
             package='gem_gnss_control',
