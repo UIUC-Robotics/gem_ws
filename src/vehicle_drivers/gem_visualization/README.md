@@ -1,4 +1,4 @@
-# gem_pp_visualization
+# gem_visualization
 
 Shared RViz visualization for pure pursuit: full recorded track, the path
 actually driven so far, the current pursuit target waypoint, and a marker
@@ -31,12 +31,12 @@ broadcasts `map -> odom -> base_link`.
 
 With `gem_gnss_control` (GNSS-direct pure pursuit):
 ```bash
-ros2 launch gem_pp_visualization visualize_gnss.launch.py
+ros2 launch gem_visualization visualize_pp_gnss.launch.py
 ```
 
 With `gem_odometry_control` (fused wheel+IMU+GPS pure pursuit):
 ```bash
-ros2 launch gem_pp_visualization visualize_odom.launch.py
+ros2 launch gem_visualization visualize_pp_odom.launch.py
 ```
 
 Both launch files auto-load `waypoints_file`/`origin_lat`/`origin_lon`
@@ -45,27 +45,6 @@ Both launch files auto-load `waypoints_file`/`origin_lat`/`origin_lon`
 with whichever waypoints file you're actually driving. Override with launch
 arguments if needed, e.g.:
 ```bash
-ros2 launch gem_pp_visualization visualize_gnss.launch.py \
+ros2 launch gem_visualization visualize_pp_gnss.launch.py \
   waypoints_file:=/absolute/path/to/some_other_track.csv
 ```
-
-## One-time RViz setup
-
-`basic_launch/rviz_display.launch.py`'s existing RViz config doesn't know
-about these new topics yet - add them once via the RViz GUI (then save the
-config so it's there next time):
-
-1. Launch `rviz_display.launch.py` as usual, plus one of the launch files
-   above.
-2. In RViz's **Global Options**, set **Fixed Frame** to `map` (it currently
-   defaults to `base_footprint`, which moves with the vehicle - `map` is a
-   world-fixed frame, so the track/traveled-path stay put while the robot
-   model moves through them).
-3. **Add** these displays (`Add` button, bottom-left):
-   - `Path` -> topic `track_path` (e.g. green line for the recorded track)
-   - `Path` -> topic `traveled_path` (e.g. a different color for the driven path)
-   - `Marker` -> topic `target_marker` (current pursuit target)
-   - `MarkerArray` -> topic `origin_marker` (origin label)
-4. `File -> Save Config As...` over
-   `src/basic_launch/rviz/gem_e2.rviz` (or `gem_e4.rviz`) to persist this
-   setup for next time.

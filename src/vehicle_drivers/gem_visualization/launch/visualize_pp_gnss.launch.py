@@ -42,10 +42,24 @@ def generate_launch_description():
     target_topic_arg = DeclareLaunchArgument(
         'target_topic', default_value='/pure_pursuit/target_point')
 
+    # Path to custom RViz file you want to pass (change package/file as needed)
+    custom_rviz_config = os.path.join(
+        get_package_share_directory('basic_launch'),
+        'rviz',
+        f'gem_{vehicle_name}_pp.rviz'
+    )
+
+    # Pass the custom rviz config file to the included launch file
     rviz_display_launch = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource([os.path.join(
-            get_package_share_directory('basic_launch'), 'launch'),
-            '/rviz_display.launch.py'])
+        PythonLaunchDescriptionSource([
+            os.path.join(
+                get_package_share_directory('basic_launch'), 'launch'
+            ),
+            '/rviz_display.launch.py'
+        ]),
+        launch_arguments={
+            'rviz_config_file': custom_rviz_config
+        }.items()
     )
 
     return LaunchDescription([
@@ -55,9 +69,9 @@ def generate_launch_description():
         pose_topic_arg,
         target_topic_arg,
         Node(
-            package='gem_pp_visualization',
-            executable='track_visualizer',
-            name='track_visualizer_node',
+            package='gem_visualization',
+            executable='pp_track_visualizer',
+            name='pp_track_visualizer_node',
             output='screen',
             parameters=[{
                 'waypoints_file': LaunchConfiguration('waypoints_file'),

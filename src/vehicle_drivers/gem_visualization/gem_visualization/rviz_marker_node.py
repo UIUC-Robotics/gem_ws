@@ -1,4 +1,12 @@
 #!/usr/bin/env python3
+
+"""GEM RViz Marker Node
+
+This node publishes a text marker to RViz displaying the status of the GEM vehicle,
+including RTK status, GPS coordinates, yaw, speed, and steering angle.
+"""
+
+
 import rclpy
 from rclpy.node import Node
 from visualization_msgs.msg import Marker

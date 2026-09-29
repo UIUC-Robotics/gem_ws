@@ -19,12 +19,6 @@ ros2 launch basic_launch sensor_init.launch.py
 source install/setup.bash
 ros2 launch basic_launch corner_cameras.launch.py
 ```
-    
-# launch GNSS location visualization on Map Image
-```bash
-source install/setup.bash
-ros2 launch basic_launch gnss_visualization.launch.py
-```
 
 # launch joystick control
 ```bash

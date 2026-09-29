@@ -24,25 +24,8 @@
 
   <!-- *************************** Base link below *************************** -->
   
-  <link name="base_footprint"> 
-  </link>
-
+  <!-- Main structural frame of the vehicle -->
   <link name="base_link">
-
-    <!--
-    <inertial>
-      <origin xyz="0.0410109641324594 0.000349767124208047 0.219524161679779" rpy="0 0 0" />
-      <mass value="686.066668067387" />
-      <inertia
-        ixx="205.702789313137"
-        ixy="-0.20742120719075"
-        ixz="-9.13771633467953"
-        iyy="482.020173559149"
-        iyz="0.0517191981605489"
-        izz="482.316418870047" />
-    </inertial>
-    -->
-
     <inertial>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <mass value="686" />
@@ -69,13 +52,17 @@
         <mesh filename="package://gem_description/meshes/e2/base_link.STL" />
       </geometry>
     </collision>
-
   </link>
 
-  <joint name="base_link" type="fixed">
-    <origin xyz="0 0 0.44" rpy="0 0 0"/>
-    <parent link="base_footprint"/>
-    <child link="base_link"/>
+  <!-- Ground projection link (2D level ground frame) -->
+  <link name="base_footprint">
+  </link>
+
+  <!-- Joint directing base_link -> base_footprint (-0.44m down to the ground) -->
+  <joint name="base_footprint_joint" type="fixed">
+    <origin xyz="0 0 -0.44" rpy="0 0 0"/>
+    <parent link="base_link"/>
+    <child link="base_footprint"/>
   </joint>
 
 

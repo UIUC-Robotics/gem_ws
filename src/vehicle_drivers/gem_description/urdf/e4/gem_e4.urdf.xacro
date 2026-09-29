@@ -22,9 +22,6 @@
 
   <xacro:include filename="$(find gem_description)/urdf/ouster/OS1-64.urdf.xacro" />
 
-  <link name="base_footprint">
-  </link>
-
   <link name="base_link">
     <inertial>
       <origin xyz="-0.01178 0.0012042 0.47962" rpy="0 0 0" />
@@ -58,10 +55,13 @@
     <material>Gazebo/Blue</material>
   </gazebo>
 
-  <joint name="base_link" type="fixed">
-    <origin xyz="0 0 0.268" rpy="0 0 0" />
-    <parent link="base_footprint" />
-    <child link="base_link" />
+  <link name="base_footprint">
+  </link>
+
+  <joint name="base_footprint_joint" type="fixed">
+    <origin xyz="0 0 -0.268" rpy="0 0 0" />
+    <parent link="base_link" />
+    <child link="base_footprint" />
   </joint>
 
   <!-- ************************************* Fixed Links ************************************* -->

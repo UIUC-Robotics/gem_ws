@@ -18,14 +18,6 @@ os.environ['RCUTILS_CONSOLE_OUTPUT_FORMAT'] = '{time}: [{name}] [{severity}]\t{m
 
 def generate_launch_description():
 
-    gem_gnss_image_node = Node(
-        package='gem_gnss_image',
-        executable='gem_gnss_image',
-        output='screen',
-        name='gem_gnss_image_node',
-    )
-
-
     default_file_name = 'ins.yaml'
     name_arg_file_name = "file_name"
     arg_file_name = DeclareLaunchArgument(name_arg_file_name,
@@ -59,4 +51,4 @@ def generate_launch_description():
         output='screen'
     )
 
-    return launch.LaunchDescription([arg_file_name, arg_file_path, gem_gnss_image_node, container])
+    return launch.LaunchDescription([arg_file_name, arg_file_path, container])
