@@ -162,7 +162,7 @@ class PurePursuit(Node):
         self.target_point_pub = self.create_publisher(PointStamped, '/pure_pursuit/target_point', 10)
 
         # Commands
-        self.global_cmd = GlobalCmd(enable=False, clear_override = False, ignore_override = False)
+        self.global_cmd = GlobalCmd(enable=False, clear_override = True, ignore_override = False)
         self.gear_cmd = SystemCmdInt(command=2)  # NEUTRAL
         self.brake_cmd = SystemCmdFloat(command=0.0)
         self.accel_cmd = SystemCmdFloat(command=0.0)
@@ -312,7 +312,7 @@ class PurePursuit(Node):
         if joy_enable == 1 and not self.pacmod_enable:
             # joystick enable when vehicle disbaled 
             self.global_cmd.enable = True
-            self.global_cmd.clear_override = False
+            self.global_cmd.clear_override = True
             self.global_pub.publish(self.global_cmd)
             
             self.gear_cmd.command = 3

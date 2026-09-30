@@ -18,14 +18,14 @@ def generate_launch_description():
     pp_visualization = IncludeLaunchDescription(
         PythonLaunchDescriptionSource([
             os.path.join(
-                get_package_share_directory('gem_visualization'), 'launch'
-            ),
+                get_package_share_directory('gem_visualization'), 'launch',
             'visualize_pp_gnss.launch.py'
+            )
         ])
     )
 
     joy_node = Node(
-        package='Joy',
+        package='joy',
         executable='joy_node',
         name='joy_node',
         output='screen'
