@@ -24,6 +24,20 @@ def generate_launch_description():
         ])
     )
 
+    joy_node = Node(
+        package='Joy',
+        executable='joy_node',
+        name='joy_node',
+        output='screen'
+    )
+
+    joystick_command_node = Node(
+        package='gem_gnss_control',
+        executable='joystick_command',
+        name='joystick_command',
+        output='screen'
+    )
+
     return LaunchDescription([
         # LogInfo(msg=f'Using Vehicle config: {vehicle_env}'),
         
@@ -34,5 +48,7 @@ def generate_launch_description():
             output='screen',
             parameters=[config_path]
         ),
+        joy_node,
+        joystick_command_node,
         pp_visualization
     ])
