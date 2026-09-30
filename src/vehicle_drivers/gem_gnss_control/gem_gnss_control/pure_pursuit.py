@@ -239,10 +239,11 @@ class PurePursuit(Node):
             return 2
         if lb and rb:
             # enable
-            self.get_logger().warn("Joystick enabled")
+            self.get_logger().warn("Joystick Pressed")
             return 1
         elif lb and not rb:
             # disable
+            self.get_logger().warn("Joystick Released")
             return 0
         # others
         return 2
@@ -304,7 +305,7 @@ class PurePursuit(Node):
             self.turn_cmd.command = 3
             self.turn_pub.publish(self.turn_cmd)
             
-            self.get_logger().warn('Pacmod Disabled: Vehicle enabled and forward gear engaged')
+            self.get_logger().warn('Joystick enabled, Pacmod enabled, forward gear engaged')
 
         elif joy_enable == 0 and self.pacmod_enable:
             # joystick disable when vehicle enbaled
@@ -314,7 +315,7 @@ class PurePursuit(Node):
             self.turn_cmd.command = 1
             self.turn_pub.publish(self.turn_cmd)
 
-            self.get_logger().warn('Joystick Disabled: Vehicle disabled')
+            self.get_logger().warn('Joystick Disabled, Pacmod disabled')
 
         elif joy_enable != 0 and self.pacmod_enable:
             # exceuate controller

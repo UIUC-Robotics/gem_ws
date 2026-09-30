@@ -1,5 +1,6 @@
 from launch import LaunchDescription
-from launch.actions import LogInfo
+from launch.actions import LogInfo, IncludeLaunchDescription
+from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch_ros.actions import Node
 from ament_index_python.packages import get_package_share_directory
 import os
@@ -14,6 +15,15 @@ def generate_launch_description():
         config_file
     )
 
+    pp_visualization = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource([
+            os.path.join(
+                get_package_share_directory('gem_visualization'), 'launch'
+            ),
+            'visualize_pp_gnss.launch.py'
+        ])
+    )
+
     return LaunchDescription([
         # LogInfo(msg=f'Using Vehicle config: {vehicle_env}'),
         
@@ -23,5 +33,6 @@ def generate_launch_description():
             name='pure_pursuit',
             output='screen',
             parameters=[config_path]
-        )
+        ),
+        pp_visualization
     ])
