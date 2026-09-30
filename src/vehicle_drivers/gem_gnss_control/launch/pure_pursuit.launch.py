@@ -1,5 +1,5 @@
 from launch import LaunchDescription
-from launch.actions import LogInfo, IncludeLaunchDescription
+from launch.actions import LogInfo, IncludeLaunchDescription, Shutdown
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch_ros.actions import Node
 from ament_index_python.packages import get_package_share_directory
@@ -46,7 +46,8 @@ def generate_launch_description():
             executable='pure_pursuit',  # or 'pure_pursuit_node' if you updated setup.py
             name='pure_pursuit',
             output='screen',
-            parameters=[config_path]
+            parameters=[config_path],
+            on_exit=Shutdown()  
         ),
         joy_node,
         joystick_command_node,

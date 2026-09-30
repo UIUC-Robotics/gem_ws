@@ -389,9 +389,14 @@ class PurePursuit(Node):
 def main(args=None):
     rclpy.init(args=args)
     pure_pursuit = PurePursuit()
-    rclpy.spin(pure_pursuit)
-    pure_pursuit.destroy_node()
-    rclpy.shutdown()
+
+    try:
+        rclpy.spin(pure_pursuit)
+    except KeyboardInterrupt:
+        pass
+    finally:
+        pure_pursuit.destroy_node()
+        rclpy.shutdown()
 
 
 if __name__ == '__main__':
