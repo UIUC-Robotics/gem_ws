@@ -52,13 +52,10 @@ gyro integration; can be re-enabled if needed).
 # Terminal 1: GNSS/INS driver
 ros2 launch basic_launch gnss.launch.py
 
-# Terminal 2: fused localization (wheel + IMU + GPS)
-ros2 launch gem_odometry_control localization.launch.py
-
-# Terminal 3a: record waypoints while driving manually
+# Terminal 2a: record waypoints while driving manually (will launch localization.launch.py)
 ros2 launch gem_odometry_control record_waypoints_odom.launch.py output_file:=track_odom.csv
 
-# Terminal 3b (later, autonomous run instead of recording):
+# Terminal 2b (later, autonomous run instead of recording) (will launch localization.launch.py)
 ros2 launch pacmod2 pacmod2.launch.xml
 ros2 launch gem_odometry_control pure_pursuit_odom.launch.py
 ```

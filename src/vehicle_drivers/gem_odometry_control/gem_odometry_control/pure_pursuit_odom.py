@@ -14,15 +14,23 @@ import csv
 import math
 import numpy as np
 import scipy.signal as signal
+import pygame
 
 import rclpy
 from rclpy.node import Node
 
-from std_msgs.msg import Bool
+from std_msgs.msg import Bool, Float32
 from pacmod2_msgs.msg import PositionWithSpeed, GlobalCmd, SystemCmdFloat, SystemCmdInt, GlobalRpt
 from nav_msgs.msg import Odometry
 from geometry_msgs.msg import PointStamped
 
+# Initialize pygame for joystick
+pygame.init()
+pygame.joystick.init()
+if pygame.joystick.get_count() == 0:
+    raise RuntimeError("No joystick connected")
+joystick = pygame.joystick.Joystick(0)
+joystick.init()
 
 class PID:
     def __init__(self, kp, ki, kd, wg=None):
@@ -116,6 +124,7 @@ class PurePursuitOdom(Node):
         self.have_odom = False
         self.pacmod_enable = False
         self.pacmod_override_active = False
+        self.brake_value = 0.0
 
         self.create_subscription(Odometry, odom_topic, self.odom_callback, 10)
         self.create_subscription(Bool, '/pacmod/enabled', self.enable_callback, 10)
@@ -124,6 +133,11 @@ class PurePursuitOdom(Node):
         # disengages autonomous control the same way it does under
         # joystick teleop (pacmod2_game_control_exec).
         self.create_subscription(GlobalRpt, '/pacmod/global_rpt', self.global_rpt_callback, 10)
+        # Published by gem_gnss_control's joystick_command node from the
+        # joystick's brake trigger axis, so the operator can manually brake
+        # on top of autonomous control (see gem_gnss_control/pure_pursuit.py
+        # for the matching GNSS-direct implementation).
+        self.create_subscription(Float32, '/brake_value', self.brake_callback, 10)
 
         self.global_pub = self.create_publisher(GlobalCmd, '/pacmod/global_cmd', 10)
         self.gear_pub = self.create_publisher(SystemCmdInt, '/pacmod/shift_cmd', 10)
@@ -163,6 +177,25 @@ class PurePursuitOdom(Node):
         self.path_points_heading = [float(p[2]) for p in path_points]
         self.wp_size = len(self.path_points_x)
 
+    def check_joystick_enable(self):
+        pygame.event.pump()
+        try:
+            lb = joystick.get_button(6)
+            rb = joystick.get_button(7)
+        except pygame.error:
+            self.get_logger().warn("Joystick read failed")
+            return 2
+        if lb and rb:
+            # enable
+            self.get_logger().warn("Joystick Pressed")
+            return 1
+        elif lb and not rb:
+            # disable
+            self.get_logger().warn("Joystick Released")
+            return 0
+        # others
+        return 2
+    
     def odom_callback(self, msg):
         self.curr_x = msg.pose.pose.position.x
         self.curr_y = msg.pose.pose.position.y
@@ -175,6 +208,9 @@ class PurePursuitOdom(Node):
 
     def global_rpt_callback(self, msg):
         self.pacmod_override_active = msg.override_active
+
+    def brake_callback(self, msg):
+        self.brake_value = msg.data
 
     def publish_target_point(self, x, y):
         pt = PointStamped()
@@ -209,63 +245,99 @@ class PurePursuitOdom(Node):
                 throttle_duration_sec=1.0)
             return
 
-        curr_x, curr_y, curr_yaw = self.curr_x, self.curr_y, self.curr_yaw
-        self.get_logger().info(f"Current pose: ({curr_x:.2f}, {curr_y:.2f}, {curr_yaw:.2f})")
+        joy_enable = self.check_joystick_enable()
 
-        for i in range(self.wp_size):
-            self.dist_arr[i] = self.dist(
-                (self.path_points_x[i], self.path_points_y[i]), (curr_x, curr_y))
+        if joy_enable == 1 and not self.pacmod_enable:
+            # joystick enable when vehicle disbaled 
+            self.global_cmd.enable = True
+            self.global_cmd.clear_override = True
+            self.global_pub.publish(self.global_cmd)
+            
+            self.gear_cmd.command = 3
+            self.gear_pub.publish(self.gear_cmd)
+            
+            self.brake_cmd.command = 0.0
+            self.brake_pub.publish(self.brake_cmd)
 
-        self.goal = int(np.argmin(self.dist_arr))
-        ld = self.look_ahead + max(0.0, self.speed - 2.5) * 2
-        for i in range(self.goal, self.wp_size):
-            if self.dist_arr[i] > ld:
-                self.goal = i
-                break
+            self.accel_cmd.command = 0.0
+            self.accel_pub.publish(self.accel_cmd)
 
-        target_x = self.path_points_x[self.goal]
-        target_y = self.path_points_y[self.goal]
-        self.publish_target_point(target_x, target_y)
+            self.turn_cmd.command = 3
+            self.turn_pub.publish(self.turn_cmd)
+            
+            self.get_logger().warn('Joystick enabled, Pacmod enabled, forward gear engaged')
 
-        # Only actuate once PACMod is actually enabled - target/pose above
-        # are still published continuously for visualization purposes.
-        if not self.pacmod_enable:
-            return
+        elif joy_enable == 0 and self.pacmod_enable:
+            # joystick disable when vehicle enbaled
+            self.global_cmd.enable = False
+            self.global_pub.publish(self.global_cmd)
 
-        alpha = math.atan2(target_y - curr_y, target_x - curr_x) - curr_yaw
-        curvature = 0.0 if self.speed < 0.2 else 2.0 * math.sin(alpha) / ld
-        steering_angle = math.atan(self.wheelbase * curvature)
-        steering_wheel_angle = self.front2steer(math.degrees(steering_angle))
+            self.turn_cmd.command = 1
+            self.turn_pub.publish(self.turn_cmd)
 
-        self.steer_cmd.angular_position = math.radians(steering_wheel_angle)
-        self.steer_pub.publish(self.steer_cmd)
+            self.get_logger().warn('Joystick Disabled, Pacmod disabled')
+        
+        elif joy_enable != 0 and self.pacmod_enable:
+            curr_x, curr_y, curr_yaw = self.curr_x, self.curr_y, self.curr_yaw
+            for i in range(self.wp_size):
+                self.dist_arr[i] = self.dist(
+                    (self.path_points_x[i], self.path_points_y[i]), (curr_x, curr_y))
 
-        now = self.get_clock().now().nanoseconds * 1e-9
-        speed_error = self.desired_speed - self.speed
-        if abs(speed_error) < 0.05:
-            speed_error = 0.0
-        throttle_cmd = self.pid_speed.get_control(now, speed_error)
-        throttle_cmd = max(0.0, min(throttle_cmd, self.max_accel))
+            self.goal = int(np.argmin(self.dist_arr))
+            ld = self.look_ahead + max(0.0, self.speed - 2.5) * 2
+            for i in range(self.goal, self.wp_size):
+                if self.dist_arr[i] > ld:
+                    self.goal = i
+                    break
 
-        self.accel_cmd.command = throttle_cmd
-        self.brake_cmd.command = 0.0
-        self.accel_pub.publish(self.accel_cmd)
-        self.brake_pub.publish(self.brake_cmd)
+            target_x = self.path_points_x[self.goal]
+            target_y = self.path_points_y[self.goal]
+            self.publish_target_point(target_x, target_y)
 
-        self.global_cmd.enable = True
-        self.global_pub.publish(self.global_cmd)
+            # Only actuate once PACMod is actually enabled - target/pose above
+            # are still published continuously for visualization purposes.
+            if not self.pacmod_enable:
+                return
 
-        self.get_logger().info(
-            f"Target: ({target_x:.2f}, {target_y:.2f}), Speed: {self.speed:.2f}, Throttle: {throttle_cmd:.2f}, Steering: {steering_wheel_angle:.2f}"
-        )
+            alpha = math.atan2(target_y - curr_y, target_x - curr_x) - curr_yaw
+            curvature = 0.0 if self.speed < 0.2 else 2.0 * math.sin(alpha) / ld
+            steering_angle = math.atan(self.wheelbase * curvature)
+            steering_wheel_angle = self.front2steer(math.degrees(steering_angle))
+
+            self.steer_cmd.angular_position = math.radians(steering_wheel_angle)
+            self.steer_pub.publish(self.steer_cmd)
+
+            now = self.get_clock().now().nanoseconds * 1e-9
+            speed_error = self.desired_speed - self.speed
+            if abs(speed_error) < 0.05:
+                speed_error = 0.0
+            throttle_cmd = self.pid_speed.get_control(now, speed_error)
+            throttle_cmd = max(0.0, min(throttle_cmd, self.max_accel))
+
+            self.accel_cmd.command = throttle_cmd
+            self.brake_cmd.command = max(0.0, min(self.brake_value, 0.8))
+            self.accel_pub.publish(self.accel_cmd)
+            self.brake_pub.publish(self.brake_cmd)
+
+            self.global_cmd.enable = True
+            self.global_pub.publish(self.global_cmd)
+
+            self.get_logger().info(
+                f"Current: ({curr_x:.2f}, {curr_y:.2f}, {curr_yaw:.2f}), Target: ({target_x:.2f}, {target_y:.2f}), Speed: {self.speed:.2f}, Throttle: {throttle_cmd:.2f}, Steering: {steering_wheel_angle:.2f}"
+            )
 
 
 def main(args=None):
     rclpy.init(args=args)
     node = PurePursuitOdom()
-    rclpy.spin(node)
-    node.destroy_node()
-    rclpy.shutdown()
+
+    try:
+        rclpy.spin(node)
+    except KeyboardInterrupt:
+        pass
+    finally:
+        node.destroy_node()
+        rclpy.shutdown()
 
 
 if __name__ == '__main__':
