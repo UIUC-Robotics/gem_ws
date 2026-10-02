@@ -20,7 +20,7 @@ import rclpy
 from rclpy.node import Node
 
 from std_msgs.msg import Bool, Float32
-from pacmod2_msgs.msg import PositionWithSpeed, VehicleSpeedRpt, GlobalCmd, SystemCmdFloat, SystemCmdInt, GlobalRpt
+from pacmod2_msgs.msg import PositionWithSpeed, VehicleSpeedRpt, GlobalCmd, SystemCmdFloat, SystemCmdInt, GlobalRpt, SystemRptFloat, SystemRptInt
 from sensor_msgs.msg import NavSatFix
 from septentrio_gnss_driver.msg import INSNavGeod
 from nav_msgs.msg import Odometry
@@ -144,6 +144,10 @@ class PurePursuit(Node):
         self.create_subscription(INSNavGeod, '/insnavgeod', self.ins_callback, 10)
         self.create_subscription(Bool, '/pacmod/enabled', self.enable_callback, 10)
         self.create_subscription(VehicleSpeedRpt, '/pacmod/vehicle_speed_rpt', self.speed_callback, 10)
+        self.create_subscription(SystemRptFloat, '/pacmod/brake_rpt', self.brake_rpt_callback, 10)
+        self.current_brake = 0.0
+        self.create_subscription(SystemRptInt, '/pacmod/shift_rpt', self.shift_rpt_callback, 10)
+        self.current_gear = 2
         
         self.create_subscription(Float32, '/brake_value', self.brake_callback, 10)
         self.pacmod_override_active = False
@@ -183,8 +187,8 @@ class PurePursuit(Node):
         self.brake_value = 0.0
         self.is_stopping = False
         self.stop_start_time = 0.0
-        self.ramp_duration = 2.0
-
+        self.ramp_duration = 1.5
+        self.max_stop_brake = 0.7
 
         self.dist_arr = np.zeros(len(self.path_points_lon_x))
 
@@ -206,8 +210,22 @@ class PurePursuit(Node):
     def global_rpt_callback(self, msg):
         self.pacmod_override_active = msg.override_active
 
+        if self.pacmod_override_active:
+            # Operator physically grabbed the steering wheel/brake/accelerator.
+            self.global_cmd.enable = False
+            self.global_pub.publish(self.global_cmd)
+            self.get_logger().warn(
+                'Manual override detected on PACMod - disengaging autonomous control',
+                throttle_duration_sec=1.0)
+
     def brake_callback(self, msg):
         self.brake_value = msg.data
+
+    def brake_rpt_callback(self, msg):
+        self.current_brake = msg.output
+
+    def shift_rpt_callback(self, msg):
+        self.current_gear = msg.output
 
     def read_waypoints(self):
         waypoints_file = self.get_parameter('waypoints_file').value
@@ -303,25 +321,14 @@ class PurePursuit(Node):
         curr_x, curr_y, curr_yaw = self.get_gem_state()
         self.publish_local_odom(curr_x, curr_y, curr_yaw)
 
-        if self.pacmod_override_active:
-            # Operator physically grabbed the steering wheel/brake/accelerator.
-            # The bare pacmod2 driver only reports this (override_active in
-            # /pacmod/global_rpt) - it does not react to it. 
-            self.global_cmd.enable = False
-            self.global_pub.publish(self.global_cmd)
-            self.get_logger().warn(
-                'Manual override detected on PACMod - disengaging autonomous control',
-                throttle_duration_sec=1.0)
-            return
-
         if joy_enable == 1 and not self.pacmod_enable:
             # joystick enable when vehicle disbaled 
             self.global_cmd.enable = True
             self.global_cmd.clear_override = True
             self.global_pub.publish(self.global_cmd)
             
-            self.gear_cmd.command = 3
-            self.gear_pub.publish(self.gear_cmd)
+            # self.gear_cmd.command = 3
+            # self.gear_pub.publish(self.gear_cmd)
             
             self.brake_cmd.command = 0.0
             self.brake_pub.publish(self.brake_cmd)
@@ -375,8 +382,7 @@ class PurePursuit(Node):
                 self.accel_pub.publish(self.accel_cmd)
 
                 # 2. Smoothly ramp brake from 0.0 to 0.5 max over ramp_duration (2.0s)
-                max_stop_brake = 0.5
-                brake_target = min(max_stop_brake, max_stop_brake * (elapsed / self.ramp_duration))
+                brake_target = min(self.max_stop_brake, self.max_stop_brake * (elapsed / self.ramp_duration))
                 self.brake_cmd.command = brake_target
                 self.brake_pub.publish(self.brake_cmd)
 
@@ -388,6 +394,7 @@ class PurePursuit(Node):
                 if self.speed < 0.05:  # Vehicle is fully stopped
                     self.gear_cmd.command = 2  # NEUTRAL
                     self.get_logger().info("Vehicle completely stopped. Gear shifted to NEUTRAL.", throttle_duration_sec=2.0)
+                    self.is_stopping = False
                 else:
                     self.gear_cmd.command = 3  # Keep FORWARD until stopped
                     self.get_logger().info(f"Decelerating... Speed: {self.speed:.2f} m/s, Brake: {brake_target:.2f}", throttle_duration_sec=0.5)
@@ -400,6 +407,14 @@ class PurePursuit(Node):
 
                 return            
 
+            # Shifting gear to drive if not already in drive
+            if self.current_gear != 3:  # FORWARD
+                # Only shift if current brake is above 25%
+                self.get_logger().info(f"Attempting to shift to FORWARD. Current brake: {self.current_brake:.2f}. Press brake above 25% to proceed.")
+                if self.current_brake > 0.25:
+                    self.gear_cmd.command = 3  # FORWARD
+                    self.gear_pub.publish(self.gear_cmd)
+            
             for i in range(self.wp_size):
                 self.dist_arr[i] = self.dist((self.path_points_x[i], self.path_points_y[i]), (curr_x, curr_y))
 

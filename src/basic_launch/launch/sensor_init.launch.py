@@ -154,14 +154,6 @@ def generate_launch_description():
         parameters=[gnss_config],
         condition=IfCondition(gps_init)
     )
-    
-    gem_gnss_image_node = Node(
-        package='gem_gnss_image',
-        executable='gem_gnss_image',
-        output='screen',
-        name='gem_gnss_image_node',
-        condition=IfCondition(gps_init)
-    )
 
     gnss_container = ComposableNodeContainer(
         name='septentrio_gnss_driver_container',
@@ -181,7 +173,6 @@ def generate_launch_description():
                 LogInfo(msg="os_driver is active. Launching Lucid corner cameras..."),
                 rviz_display_launch,
                 gnss_container,
-                gem_gnss_image_node,
                 lucid_cam_launch,
                 front_camera_launch,
                 zed_camera_launch,
