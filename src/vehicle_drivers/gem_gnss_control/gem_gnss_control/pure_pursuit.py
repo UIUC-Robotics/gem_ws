@@ -217,6 +217,8 @@ class PurePursuit(Node):
             self.get_logger().warn(
                 'Manual override detected on PACMod - disengaging autonomous control',
                 throttle_duration_sec=1.0)
+            self.gear_cmd.command = 2  # NEUTRAL
+            self.gear_pub.publish(self.gear_cmd)
 
     def brake_callback(self, msg):
         self.brake_value = msg.data
@@ -278,6 +280,8 @@ class PurePursuit(Node):
         elif lb and not rb:
             # disable
             self.get_logger().warn("Joystick Released")
+            self.gear_cmd.command = 2
+            self.gear_pub.publish(self.gear_cmd)
             return 0
         # others
         return 2
@@ -326,10 +330,7 @@ class PurePursuit(Node):
             self.global_cmd.enable = True
             self.global_cmd.clear_override = True
             self.global_pub.publish(self.global_cmd)
-            
-            # self.gear_cmd.command = 3
-            # self.gear_pub.publish(self.gear_cmd)
-            
+
             self.brake_cmd.command = 0.0
             self.brake_pub.publish(self.brake_cmd)
 
@@ -442,8 +443,8 @@ class PurePursuit(Node):
             speed_error = self.desired_speed - self.speed
             if abs(speed_error) < 0.05:
                 speed_error = 0.0
-            throttle_cmd = self.pid_speed.get_control(now, speed_error)
-            throttle_cmd = max(0.0, min(throttle_cmd, self.max_accel))
+            pid_throttle_cmd = self.pid_speed.get_control(now, speed_error)
+            throttle_cmd = max(0.0, min(pid_throttle_cmd, self.max_accel))
 
             self.accel_cmd.command = throttle_cmd
             self.brake_cmd.command = max(0.0, min(self.brake_value, 0.8))

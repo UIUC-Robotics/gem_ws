@@ -1,5 +1,8 @@
 # gem_odometry_control
 
+$\textcolor{red}{\textbf{Not Working Currently. Will be fixed soon.}}$
+
+
 Local, GPS-anchored odometry (wheel speed + IMU + GPS fused via
 `robot_localization`) as an alternative localization source for pure
 pursuit, instead of the GNSS-direct approach in `gem_gnss_control`.
@@ -40,22 +43,19 @@ gyro integration; can be re-enabled if needed).
 - `record_waypoints_odom` - records waypoints from `/odometry/filtered`
   while driving manually.
 
-> Note: unlike `gem_gnss_control/pure_pursuit.py`, this variant does not
-> include the pygame-joystick LB+RB enable gate - it starts driving as soon
-> as `/pacmod/enabled` is true. Bring your own enable path (e.g. keep using
-> the joystick teleop's enable buttons, or port the same pygame gate over)
-> before relying on this for real driving.
 
 ## Usage
 
 ```bash
-# Terminal 1: GNSS/INS driver
+# Terminal 1: Launch Pacmod and Robot State Publisher
+ros2 launch basic_launch dbw_only.launch.py
+
+# Terminal 2: GNSS/INS driver
 ros2 launch basic_launch gnss.launch.py
 
-# Terminal 2a: record waypoints while driving manually (will launch localization.launch.py)
+# Terminal 3a: record waypoints while driving manually (will launch localization.launch.py)
 ros2 launch gem_odometry_control record_waypoints_odom.launch.py output_file:=track_odom.csv
 
-# Terminal 2b (later, autonomous run instead of recording) (will launch localization.launch.py)
-ros2 launch pacmod2 pacmod2.launch.xml
+# Terminal 3b (later, autonomous run instead of recording) (will launch localization.launch.py)
 ros2 launch gem_odometry_control pure_pursuit_odom.launch.py
 ```

@@ -27,7 +27,7 @@ def generate_launch_description():
 
     output_file_arg = DeclareLaunchArgument(
         'output_file',
-        default_value='recorded_track.csv',
+        default_value='my_track.csv',
         description='CSV filename (or absolute path) to record waypoints into'
     )
     min_distance_arg = DeclareLaunchArgument(
