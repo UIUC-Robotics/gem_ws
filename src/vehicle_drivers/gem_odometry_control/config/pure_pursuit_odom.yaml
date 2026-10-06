@@ -7,6 +7,9 @@ pure_pursuit_odom:
     max_accel: 0.5
     odom_topic: '/odometry/filtered'
     waypoints_file: 'track_odom.csv'
+    kick_start_accel: 0.3
+    kick_start_duration: 1.0
+    kick_start_speed_threshold: 0.15
     pid:
       kp: 0.6
       ki: 0.0

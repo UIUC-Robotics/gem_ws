@@ -89,6 +89,14 @@ class PurePursuitOdom(Node):
         self.declare_parameter('max_accel', 0.5)
         self.declare_parameter('odom_topic', '/odometry/filtered')
         self.declare_parameter('waypoints_file', 'track_odom.csv')
+        # Static-friction "kick-start": see gem_gnss_control/pure_pursuit.py
+        # for the full explanation - a brief accel command isn't always held
+        # long enough to overcome stiction from a dead stop. We hold at
+        # least kick_start_accel for up to kick_start_duration seconds
+        # whenever near-zero speed is detected, across many ticks.
+        self.declare_parameter('kick_start_accel', 0.3)
+        self.declare_parameter('kick_start_duration', 1.0)
+        self.declare_parameter('kick_start_speed_threshold', 0.15)
 
         self.declare_parameter('pid/kp', 0.6)
         self.declare_parameter('pid/ki', 0.0)
@@ -105,6 +113,9 @@ class PurePursuitOdom(Node):
         self.desired_speed = min(5.0, self.get_parameter('desired_speed').value)
         self.max_accel = min(2.0, self.get_parameter('max_accel').value)
         odom_topic = self.get_parameter('odom_topic').value
+        self.kick_start_accel = self.get_parameter('kick_start_accel').value
+        self.kick_start_duration = self.get_parameter('kick_start_duration').value
+        self.kick_start_speed_threshold = self.get_parameter('kick_start_speed_threshold').value
 
         self.pid_speed = PID(
             kp=self.get_parameter('pid/kp').value,
@@ -125,6 +136,8 @@ class PurePursuitOdom(Node):
         self.pacmod_enable = False
         self.pacmod_override_active = False
         self.brake_value = 0.0
+        self.kick_start_active = False
+        self.kick_start_end_time = 0.0
 
         self.create_subscription(Odometry, odom_topic, self.odom_callback, 10)
         self.create_subscription(Bool, '/pacmod/enabled', self.enable_callback, 10)
@@ -311,8 +324,36 @@ class PurePursuitOdom(Node):
             speed_error = self.desired_speed - self.speed
             if abs(speed_error) < 0.05:
                 speed_error = 0.0
-            throttle_cmd = self.pid_speed.get_control(now, speed_error)
-            throttle_cmd = max(0.0, min(throttle_cmd, self.max_accel))
+            pid_throttle_cmd = self.pid_speed.get_control(now, speed_error)
+            pid_throttle_cmd = max(0.0, min(pid_throttle_cmd, self.max_accel))
+
+            # Kick-start: hold EXACTLY kick_start_accel continuously across
+            # many ticks (not just one) while speed is still near zero, for
+            # up to kick_start_duration seconds, ignoring the PID entirely
+            # during this window. A larger commanded value (e.g. the PID's
+            # max_accel-clamped output) is NOT a safe substitute - testing
+            # showed a sustained 0.3 breaks static friction while a
+            # sustained 0.5 does not, so this must not be "at least
+            # kick_start_accel" (max() with the PID output).
+            if self.speed < self.kick_start_speed_threshold:
+                if not self.kick_start_active:
+                    self.kick_start_active = True
+                    self.kick_start_end_time = now + self.kick_start_duration
+                    self.get_logger().info(
+                        f"Kick-start: holding accel={self.kick_start_accel:.2f} for up to "
+                        f"{self.kick_start_duration:.1f}s to break static friction")
+                if now < self.kick_start_end_time:
+                    throttle_cmd = self.kick_start_accel
+                else:
+                    # Timed out without the car moving - stop forcing it and
+                    # fall back to the plain PID output.
+                    self.kick_start_active = False
+                    throttle_cmd = pid_throttle_cmd
+            else:
+                # Already rolling - clear kick-start state so it can re-arm
+                # next time the car comes to a stop.
+                self.kick_start_active = False
+                throttle_cmd = pid_throttle_cmd
 
             self.accel_cmd.command = throttle_cmd
             self.brake_cmd.command = max(0.0, min(self.brake_value, 0.8))

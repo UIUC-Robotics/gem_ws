@@ -98,6 +98,15 @@ class PurePursuit(Node):
         self.declare_parameter('max_accel', 0.5)
         self.declare_parameter('waypoints_file', 'track.csv')
         self.declare_parameter('stop_distance', 2.0)
+        # Static-friction "kick-start": a single high accel command isn't held
+        # long enough (one 50ms tick before the next control_loop call
+        # recomputes it) for the actuator/motor controller to actually
+        # overcome stiction from a dead stop. Empirically (E2 testing),
+        # holding ~0.3 continuously for ~1s is what's needed; once rolling,
+        # the normal PID-computed accel works fine.
+        self.declare_parameter('kick_start_accel', 0.3)
+        self.declare_parameter('kick_start_duration', 1.0)
+        self.declare_parameter('kick_start_speed_threshold', 0.15)
 
         self.declare_parameter('pid/kp', 0.6)
         self.declare_parameter('pid/ki', 0.0)
@@ -123,6 +132,9 @@ class PurePursuit(Node):
         self.olat = self.get_parameter('origin_lat').value
         self.olon = self.get_parameter('origin_lon').value
         self.stop_dist_threshold = self.get_parameter('stop_distance').value
+        self.kick_start_accel = self.get_parameter('kick_start_accel').value
+        self.kick_start_duration = self.get_parameter('kick_start_duration').value
+        self.kick_start_speed_threshold = self.get_parameter('kick_start_speed_threshold').value
 
         self.desired_speed = min(5.0,self.get_parameter('desired_speed').value) # desired speed capped at 5 m/s
         self.max_accel = min(2.0, self.get_parameter('max_accel').value) # max acceleration capped at 2 m/s^2
@@ -189,6 +201,8 @@ class PurePursuit(Node):
         self.stop_start_time = 0.0
         self.ramp_duration = 1.5
         self.max_stop_brake = 0.7
+        self.kick_start_active = False
+        self.kick_start_end_time = 0.0
 
         self.dist_arr = np.zeros(len(self.path_points_lon_x))
 
@@ -415,6 +429,10 @@ class PurePursuit(Node):
                 if self.current_brake > 0.25:
                     self.gear_cmd.command = 3  # FORWARD
                     self.gear_pub.publish(self.gear_cmd)
+                    # Note: no accel kick here - it would be immediately
+                    # overwritten later this same tick by the PID-computed
+                    # throttle_cmd below anyway. The actual kick-start
+                    # happens once gear is confirmed FORWARD (see below).
             
             for i in range(self.wp_size):
                 self.dist_arr[i] = self.dist((self.path_points_x[i], self.path_points_y[i]), (curr_x, curr_y))
@@ -444,7 +462,38 @@ class PurePursuit(Node):
             if abs(speed_error) < 0.05:
                 speed_error = 0.0
             pid_throttle_cmd = self.pid_speed.get_control(now, speed_error)
-            throttle_cmd = max(0.0, min(pid_throttle_cmd, self.max_accel))
+            pid_throttle_cmd = max(0.0, min(pid_throttle_cmd, self.max_accel))
+
+            # Kick-start: once in FORWARD gear but still near a dead stop,
+            # hold EXACTLY kick_start_accel continuously (across many ticks,
+            # not just one) for up to kick_start_duration seconds, ignoring
+            # the PID entirely during this window. A larger commanded value
+            # (e.g. the PID's max_accel-clamped output) is NOT a safe
+            # substitute here - testing showed a sustained 0.3 breaks static
+            # friction while a sustained 0.5 does not, so this must not be
+            # "at least kick_start_accel" (max() with the PID output), it
+            # must be the specific calibrated value.
+            if self.current_gear == 3 and self.speed < self.kick_start_speed_threshold:
+                if not self.kick_start_active:
+                    self.kick_start_active = True
+                    self.kick_start_end_time = now + self.kick_start_duration
+                    self.get_logger().info(
+                        f"Kick-start: holding accel={self.kick_start_accel:.2f} for up to "
+                        f"{self.kick_start_duration:.1f}s to break static friction")
+                if now < self.kick_start_end_time:
+                    throttle_cmd = self.kick_start_accel
+                else:
+                    # Timed out without the car moving - stop forcing it and
+                    # fall back to the plain PID output (avoid getting stuck
+                    # commanding kick_start_accel forever if something else
+                    # is actually preventing movement).
+                    self.kick_start_active = False
+                    throttle_cmd = pid_throttle_cmd
+            else:
+                # Already rolling (or not yet in FORWARD) - clear kick-start
+                # state so it can re-arm next time the car comes to a stop.
+                self.kick_start_active = False
+                throttle_cmd = pid_throttle_cmd
 
             self.accel_cmd.command = throttle_cmd
             self.brake_cmd.command = max(0.0, min(self.brake_value, 0.8))
