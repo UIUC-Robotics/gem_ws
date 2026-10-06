@@ -1,20 +1,16 @@
 Panels:
   - Class: rviz_common/Displays
-    Help Height: 0
+    Help Height: 116
     Name: Displays
     Property Tree Widget:
       Expanded:
         - /Global Options1
-        - /Grid1
-        - /RGB_IMAGE1
-        - /DEPTH_IMAGE1
-        - /TOP_LIDAR_RANGE_IMAGE1
+        - /TF1/Tree1
         - /CORNER_CAMERA_FL1/Topic1
-        - /CORNER_CAMERA_FL2
-        - /track1/Status1
-        - /track1/Topic1
-      Splitter Ratio: 0.6206261515617371
-    Tree Height: 795
+        - /Zed_PointCloud1/Status1
+        - /Zed_PointCloud1/Topic1
+      Splitter Ratio: 0.4113923907279968
+    Tree Height: 679
   - Class: rviz_common/Selection
     Name: Selection
   - Class: rviz_common/Tool Properties
@@ -283,58 +279,10 @@ Visualization Manager:
       Name: TF
       Show Arrows: true
       Show Axes: true
-      Show Names: false
+      Show Names: true
       Tree:
         {}
       Update Interval: 0
-      Value: false
-    - Class: rviz_default_plugins/Image
-      Enabled: false
-      Max Value: 1
-      Median window: 5
-      Min Value: 0
-      Name: GNSS_IMAGE
-      Normalize Range: true
-      Topic:
-        Depth: 5
-        Durability Policy: Volatile
-        History Policy: Keep Last
-        Reliability Policy: Reliable
-        Value: /motion_image
-      Value: false
-    - Alpha: 1
-      Autocompute Intensity Bounds: true
-      Autocompute Value Bounds:
-        Max Value: 2.5650386810302734
-        Min Value: -1.1110913753509521
-        Value: true
-      Axis: Z
-      Channel Name: rcs
-      Class: rviz_default_plugins/PointCloud2
-      Color: 255; 255; 255
-      Color Transformer: Intensity
-      Decay Time: 0
-      Enabled: false
-      Invert Rainbow: false
-      Max Color: 255; 255; 255
-      Max Intensity: 1193.630615234375
-      Min Color: 0; 0; 0
-      Min Intensity: 0.3851589262485504
-      Name: RADAR
-      Position Transformer: XYZ
-      Selectable: true
-      Size (Pixels): 8
-      Size (m): 0.20000000298023224
-      Style: Points
-      Topic:
-        Depth: 5
-        Durability Policy: Volatile
-        Filter size: 10
-        History Policy: Keep Last
-        Reliability Policy: Reliable
-        Value: /smart_radar/targets_0
-      Use Fixed Frame: true
-      Use rainbow: true
       Value: false
     - Class: rviz_default_plugins/Image
       Enabled: false
@@ -350,20 +298,6 @@ Visualization Manager:
         Reliability Policy: Reliable
         Value: /zed/zed_node/rgb_raw/image_raw_color
       Value: false
-    - Class: rviz_default_plugins/Image
-      Enabled: false
-      Max Value: 1
-      Median window: 5
-      Min Value: 0
-      Name: DEPTH_IMAGE
-      Normalize Range: true
-      Topic:
-        Depth: 5
-        Durability Policy: Volatile
-        History Policy: Keep Last
-        Reliability Policy: Reliable
-        Value: /zed/zed_node/depth/depth_registered
-      Value: false
     - Alpha: 1
       Autocompute Intensity Bounds: true
       Autocompute Value Bounds:
@@ -379,41 +313,7 @@ Visualization Manager:
       Enabled: false
       Invert Rainbow: false
       Max Color: 255; 255; 255
-      Max Intensity: 255
-      Min Color: 0; 0; 0
-      Min Intensity: 0
-      Name: FRONT_LIDAR
-      Position Transformer: XYZ
-      Selectable: true
-      Size (Pixels): 3
-      Size (m): 0.05000000074505806
-      Style: Flat Squares
-      Topic:
-        Depth: 5
-        Durability Policy: Volatile
-        Filter size: 10
-        History Policy: Keep Last
-        Reliability Policy: Reliable
-        Value: /livox/lidar
-      Use Fixed Frame: true
-      Use rainbow: true
-      Value: false
-    - Alpha: 1
-      Autocompute Intensity Bounds: true
-      Autocompute Value Bounds:
-        Max Value: 10
-        Min Value: -10
-        Value: true
-      Axis: Z
-      Channel Name: intensity
-      Class: rviz_default_plugins/PointCloud2
-      Color: 255; 255; 255
-      Color Transformer: Intensity
-      Decay Time: 0
-      Enabled: false
-      Invert Rainbow: false
-      Max Color: 255; 255; 255
-      Max Intensity: 5743
+      Max Intensity: 5724
       Min Color: 0; 0; 0
       Min Intensity: 1
       Name: TOP_LIDAR
@@ -475,90 +375,57 @@ Visualization Manager:
         Value: /lucid_vision/camera_fr/image
       Value: false
     - Alpha: 1
-      Buffer Length: 1
-      Class: rviz_default_plugins/Path
-      Color: 25; 255; 0
-      Enabled: true
-      Head Diameter: 0.30000001192092896
-      Head Length: 0.20000000298023224
-      Length: 0.30000001192092896
-      Line Style: Lines
-      Line Width: 0.029999999329447746
-      Name: track
-      Offset:
-        X: 0
-        Y: 0
-        Z: 0
-      Pose Color: 255; 85; 255
-      Pose Style: None
-      Radius: 0.029999999329447746
-      Shaft Diameter: 0.10000000149011612
-      Shaft Length: 0.10000000149011612
-      Topic:
-        Depth: 5
-        Durability Policy: Transient Local
-        Filter size: 10
-        History Policy: Keep Last
-        Reliability Policy: Reliable
-        Value: /track_path
-      Value: true
-    - Class: rviz_default_plugins/Marker
-      Enabled: true
-      Name: target
-      Namespaces:
-        pure_pursuit_target: true
+      Autocompute Intensity Bounds: true
+      Autocompute Value Bounds:
+        Max Value: 10
+        Min Value: -10
+        Value: true
+      Axis: Z
+      Channel Name: intensity
+      Class: rviz_default_plugins/PointCloud2
+      Color: 255; 255; 255
+      Color Transformer: RGB8
+      Decay Time: 0
+      Enabled: false
+      Invert Rainbow: false
+      Max Color: 255; 255; 255
+      Max Intensity: 4096
+      Min Color: 0; 0; 0
+      Min Intensity: 0
+      Name: Zed_PointCloud
+      Position Transformer: XYZ
+      Selectable: true
+      Size (Pixels): 3
+      Size (m): 0.009999999776482582
+      Style: Flat Squares
       Topic:
         Depth: 5
         Durability Policy: Volatile
         Filter size: 10
         History Policy: Keep Last
         Reliability Policy: Reliable
-        Value: /target_marker
-      Value: true
-    - Class: rviz_default_plugins/MarkerArray
-      Enabled: true
-      Name: origin
-      Namespaces:
-        origin: true
+        Value: /zed/zed_node/point_cloud/cloud_registered
+      Use Fixed Frame: true
+      Use rainbow: true
+      Value: false
+    - Class: rviz_default_plugins/Image
+      Enabled: false
+      Max Value: 20
+      Median window: 5
+      Min Value: 0
+      Name: Zed_Depth
+      Normalize Range: false
       Topic:
         Depth: 5
         Durability Policy: Volatile
         History Policy: Keep Last
         Reliability Policy: Reliable
-        Value: /origin_marker
-      Value: true
-    - Alpha: 1
-      Buffer Length: 1
-      Class: rviz_default_plugins/Path
-      Color: 237; 51; 59
-      Enabled: true
-      Head Diameter: 0.30000001192092896
-      Head Length: 0.20000000298023224
-      Length: 0.30000001192092896
-      Line Style: Lines
-      Line Width: 0.029999999329447746
-      Name: traveled_path
-      Offset:
-        X: 0
-        Y: 0
-        Z: 0
-      Pose Color: 255; 85; 255
-      Pose Style: None
-      Radius: 0.029999999329447746
-      Shaft Diameter: 0.10000000149011612
-      Shaft Length: 0.10000000149011612
-      Topic:
-        Depth: 5
-        Durability Policy: Volatile
-        Filter size: 10
-        History Policy: Keep Last
-        Reliability Policy: Reliable
-        Value: /traveled_path
-      Value: true
+        Value: /zed/zed_node/depth/depth_registered
+      Value: false
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
-    Fixed Frame: map
+    Fixed Frame: base_link
     Frame Rate: 30
   Name: root
   Tools:
@@ -601,39 +468,35 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz_default_plugins/Orbit
-      Distance: 246.61109924316406
+      Distance: 7.449495315551758
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: -1.693228840827942
-        Y: -11.339466094970703
-        Z: 0.8694223761558533
+        X: 0.30447471141815186
+        Y: -0.7341787815093994
+        Z: 1.1979314088821411
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 1.4047969579696655
+      Pitch: 0.5647966265678406
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 3.167236089706421
+      Yaw: 2.8590569496154785
     Saved: ~
 Window Geometry:
   CORNER_CAMERA_FL:
     collapsed: false
-  DEPTH_IMAGE:
-    collapsed: false
   Displays:
-    collapsed: false
-  GNSS_IMAGE:
     collapsed: false
   Height: 946
   Hide Left Dock: false
   Hide Right Dock: false
-  QMainWindow State: 000000ff00000000fd00000004000000000000020e00000358fc020000000cfb0000001200530065006c0065006300740069006f006e000000003d000000820000005c00fffffffb0000001e0054006f006f006c002000500072006f007000650072007400690065007302000001ed000001df00000185000000a3fb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afc0000003d00000358000000c900fffffffa000000010100000008fb000000180043004f0052004e00450052005f0049004d0041004700450000000000ffffffff0000000000000000fb000000100044006900730070006c00610079007301000000000000034f0000015600fffffffb0000001a0043004f0052004e00450052005f0049004d00410047004500530000000000ffffffff0000000000000000fb0000000a0049006d0061006700650000000000ffffffff0000000000000000fb00000012005200470042005f0049004d0041004700450000000000ffffffff0000008600fffffffb000000140047004e00530053005f0049004d0041004700450000000000ffffffff0000008e00fffffffb0000001600440045005000540048005f0049004d0041004700450000000000ffffffff0000009900fffffffb000000120046004c005f00430041004d0045005200410000000000ffffffff0000000000000000fb0000002000730065006c0065006300740069006f006e00200062007500660066006500720200000138000000aa0000023a00000294fb00000014005700690064006500530074006500720065006f02000000e6000000d2000003ee0000030bfb0000000c004b0069006e0065006300740200000186000001060000030c00000261fb0000000a0049006d00610067006501000002ce000000c70000000000000000fb0000000a0049006d00610067006500000002ce000000c70000000000000000fb000000200043004f0052004e00450052005f00430041004d004500520041005f0046004c00000002e6000000af0000002800fffffffb000000200043004f0052004e00450052005f00430041004d004500520041005f0046004c00000002e7000000ae0000002800ffffff000000010000010f00000358fc0200000003fb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000041000000780000000000000000fb0000000a00560069006500770073000000003d00000358000000a400fffffffb0000001200530065006c0065006300740069006f006e010000025a000000b20000000000000000000000020000078000000134fc0100000003fb0000002a0054004f0050005f004c0049004400410052005f00520041004e00470045005f0049004d004100470045000000000000000780000000f000fffffffb0000000a0049006d0061006700650000000000000007800000000000000000fb0000000a00560069006500770073030000004e00000080000002e10000019700000003000004420000003efc0100000002fb0000000800540069006d00650100000000000004420000000000000000fb0000000800540069006d006501000000000000045000000000000000000000056c0000035800000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
+  QMainWindow State: 000000ff00000000fd00000004000000000000025e00000358fc0200000014fb0000001200530065006c0065006300740069006f006e000000003d000000820000005c00fffffffb0000001e0054006f006f006c002000500072006f007000650072007400690065007302000001ed000001df00000185000000a3fb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afc0000003d00000358000000c900fffffffa000000010100000008fb000000180043004f0052004e00450052005f0049004d0041004700450000000000ffffffff0000000000000000fb000000100044006900730070006c00610079007301000000000000034f0000015600fffffffb0000001a0043004f0052004e00450052005f0049004d00410047004500530000000000ffffffff0000000000000000fb0000000a0049006d0061006700650000000000ffffffff0000000000000000fb00000012005200470042005f0049004d0041004700450000000000ffffffff0000008600fffffffb000000140047004e00530053005f0049004d0041004700450000000000ffffffff0000000000000000fb0000001600440045005000540048005f0049004d0041004700450000000000ffffffff0000000000000000fb000000120046004c005f00430041004d0045005200410000000000ffffffff0000000000000000fb0000002000730065006c0065006300740069006f006e00200062007500660066006500720200000138000000aa0000023a00000294fb00000014005700690064006500530074006500720065006f02000000e6000000d2000003ee0000030bfb0000000c004b0069006e0065006300740200000186000001060000030c00000261fb0000000a0049006d00610067006501000002ce000000c70000000000000000fb0000000a0049006d00610067006500000002ce000000c70000000000000000fb000000200043004f0052004e00450052005f00430041004d004500520041005f0046004c0000000289000000770000002800fffffffb000000200043004f0052004e00450052005f00430041004d004500520041005f0046004c00000002ed000000a80000002800fffffffb0000000a0049006d006100670065000000017e000002170000000000000000fb0000000a0049006d00610067006501000002ce000000c70000000000000000fb0000000a0049006d00610067006501000002ce000000c70000000000000000fb0000000a0049006d00610067006501000002ce000000c70000000000000000fb0000000a0049006d00610067006501000002ce000000c70000000000000000fb0000000a0049006d00610067006501000002ce000000c70000000000000000fb00000012005a00650064005f004400650070007400680000000244000001510000002800fffffffb0000000c00430061006d00650072006100000002ce000000c70000000000000000000000010000010f00000358fc0200000003fb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000041000000780000000000000000fb0000000a00560069006500770073000000003d00000358000000a400fffffffb0000001200530065006c0065006300740069006f006e010000025a000000b20000000000000000000000020000078000000134fc0100000003fb0000002a0054004f0050005f004c0049004400410052005f00520041004e00470045005f0049004d004100470045000000000000000780000000f000fffffffb0000000a0049006d0061006700650000000000000007800000000000000000fb0000000a00560069006500770073030000004e00000080000002e10000019700000003000004420000003efc0100000002fb0000000800540069006d00650100000000000004420000000000000000fb0000000800540069006d006501000000000000045000000000000000000000051c0000035800000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
   RGB_IMAGE:
     collapsed: false
   Selection:
@@ -647,3 +510,5 @@ Window Geometry:
   Width: 1920
   X: 0
   Y: 27
+  Zed_Depth:
+    collapsed: false

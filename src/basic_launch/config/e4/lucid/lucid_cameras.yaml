@@ -1,7 +1,7 @@
 arena_camera_node_fl:
   ros__parameters:
     camera_name: "camera_fl"
-    frame_id: "CAMERA_FL"
+    frame_id: "front_left_corner_camera_optical_frame"
     pixel_format: rgb8
     serial_no: 231400023
     camera_info_url: "package://lucid_vision_driver/config/camera_fl.yaml"
@@ -24,7 +24,7 @@ arena_camera_node_fl:
 arena_camera_node_fr:
   ros__parameters:
     camera_name: "camera_fr"
-    frame_id: "CAMERA_FR"
+    frame_id: "front_right_corner_camera_optical_frame"
     pixel_format: rgb8
     serial_no: 232301929
     camera_info_url: "package://lucid_vision_driver/config/camera_fr.yaml"
@@ -47,7 +47,7 @@ arena_camera_node_fr:
 arena_camera_node_rl:
   ros__parameters:
     camera_name: "camera_rl"
-    frame_id: "CAMERA_RL"
+    frame_id: "rear_left_corner_camera_optical_frame"
     pixel_format: rgb8
     serial_no: 233500645
     camera_info_url: "package://lucid_vision_driver/config/camera_rl.yaml"
@@ -70,7 +70,7 @@ arena_camera_node_rl:
 arena_camera_node_rr:
   ros__parameters:
     camera_name: "camera_rr"
-    frame_id: "CAMERA_RR"
+    frame_id: "rear_right_corner_camera_optical_frame"
     pixel_format: rgb8
     serial_no: 233100071
     camera_info_url: "package://lucid_vision_driver/config/camera_rr.yaml"

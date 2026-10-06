@@ -100,6 +100,21 @@ def generate_launch_description():
             ],
         )
     )
+    
+    livox_launch = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            PathJoinSubstitution([
+                FindPackageShare('basic_launch'),
+                'launch',
+                'perception',
+                'HAP_launch.launch.py'
+            ]),
+            condition=IfCondition(
+                PythonExpression(["'", vehicle_name, "' == 'e4'"])
+            )
+        )
+    )
+    
     lucid_cam_launch = IncludeLaunchDescription(
             PythonLaunchDescriptionSource(
                 PathJoinSubstitution([
@@ -110,7 +125,7 @@ def generate_launch_description():
                 ])
             )
     )
-    front_camera_launch = IncludeLaunchDescription(        
+    oak_camera_launch = IncludeLaunchDescription(        
         PythonLaunchDescriptionSource([os.path.join(
             get_package_share_directory('depthai_ros_driver'), 'launch'),
             '/rgbd_pcl.launch.py']),
@@ -173,8 +188,9 @@ def generate_launch_description():
                 LogInfo(msg="os_driver is active. Launching Lucid corner cameras..."),
                 rviz_display_launch,
                 gnss_container,
+                livox_launch,
                 lucid_cam_launch,
-                front_camera_launch,
+                oak_camera_launch,
                 zed_camera_launch,
             ],
             handle_once=True
