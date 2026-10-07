@@ -107,11 +107,11 @@ def generate_launch_description():
                 FindPackageShare('basic_launch'),
                 'launch',
                 'perception',
-                'HAP_launch.launch.py'
+                'livox_lidar.launch.py'
             ]),
-            condition=IfCondition(
-                PythonExpression(["'", vehicle_name, "' == 'e4'"])
-            )
+        ),
+        condition=IfCondition(
+            PythonExpression(["'", vehicle_name, "' == 'e4'"])
         )
     )
     
@@ -129,6 +129,9 @@ def generate_launch_description():
         PythonLaunchDescriptionSource([os.path.join(
             get_package_share_directory('depthai_ros_driver'), 'launch'),
             '/rgbd_pcl.launch.py']),
+        launch_arguments={
+            'parent_frame' : 'front_camera_link'
+        }.items(),
         condition=IfCondition(
             PythonExpression(["'", vehicle_name, "' == 'e4'"])
         )
