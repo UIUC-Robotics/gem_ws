@@ -1195,12 +1195,12 @@
   <!-- *********************************************** Sensors ************************************************ -->
 
  <xacro:OS1_64 parent="top_rack_link" name="os_sensor" topic_points="/ouster/points" topic_imu ="/ouster/imu" hz="10" lasers="64" samples="512" min_range="0.9" max_range="75.0" noise="0.008" min_angle="-${M_PI}" max_angle="${M_PI}" lidar_link="os_lidar" imu_link="os_imu" vfov_min="-.26" vfov_max=".26" >
-    <origin xyz="0.02 0.115 -0.6575" rpy="1.5708 0 3.1416" /> 
+    <origin xyz="0.02 0.115 -0.6575" rpy="-1.5708 0 0" /> 
   </xacro:OS1_64>
 
-  <!-- ************************* Front Camera ************************* -->
+  <!-- ************************* Front Zed Camera ************************* -->
 
-  <link name="front_single_camera_link">
+  <link name="zed_camera_link">
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0"/>
       <geometry>
@@ -1221,50 +1221,13 @@
     </inertial>
   </link>
 
-  <!--
-  <joint name="gem_front_camera_joint" type="fixed">
-    <origin xyz="-0.045 0 0" rpy="-1.5708 3.1416 0"/>
-    <parent link="front_camera_link"/>
-    <child link="front_single_camera_link"/>
-  </joint>
-  -->
 
-  <joint name="gem_front_camera_joint" type="fixed">
-    <origin xyz="0.394 0 1.19" rpy="0 0 0"/>
+  <joint name="zed_camera_joint" type="fixed">
+    <origin xyz="0.394 0 1.35" rpy="0 0 0"/>
     <parent link="base_link"/>
-    <child link="front_single_camera_link"/>
+    <child link="zed_camera_link"/>
   </joint>
   
-  
-  <!--
-  <link name="stereo_camera_link">
-    <collision>
-      <origin xyz="0 0 0" rpy="0 0 0"/>
-      <geometry>
-        <box size="0.05 0.05 0.05"/>
-      </geometry>
-    </collision>
-    <visual>
-      <origin xyz="0 0 0" rpy="0 0 0"/>
-      <geometry>
-        <box size="0.05 0.05 0.05"/>
-      </geometry>
-      <material name="red"/>
-    </visual>
-    <inertial>
-      <mass value="1e-5" />
-      <origin xyz="0 0 0" rpy="0 0 0"/>
-      <inertia ixx="1e-6" ixy="0" ixz="0" iyy="1e-6" iyz="0" izz="1e-6" />
-    </inertial>
-  </link>
-
-
-  <joint name="gem_stereo_camera_joint" type="fixed">
-    <origin xyz="-0.045 0 0" rpy="-1.5708 3.1416 0"/>
-    <parent link="front_camera_link"/>
-    <child link="stereo_camera_link"/>
-  </joint>
-  -->
 
   <!-- IMU -->
   <link name="IMU_link">
@@ -1310,7 +1273,6 @@
   </joint>
 
 
-
   <!-- GPS -->
   <link name="GPS_link">
     <collision>
@@ -1344,61 +1306,92 @@
   </joint>
 
 
-  <!-- Front Sonar -->
-  <link name="front_sonar_link">
-    <inertial>
-      <mass value="0.001" />
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <inertia ixx="0.000000017" ixy="0" ixz="0" iyy="0.000000017" iyz="0" izz="0.000000017" />
-    </inertial>
+   <!-- ************************* Corner Cameras ************************* -->
+  
+  <!-- Front Left Corner Camera -->
+  <link name="front_left_corner_camera_link">
+    <!-- <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.02 0.02 0.01"/>
+      </geometry>
+    </collision> -->
     <visual>
-      <origin xyz="0 0 0" rpy="0 0 0" />
+      <origin xyz="0 0 0" rpy="0 0 0"/>
       <geometry>
-        <box size="0.05 0.2 0.1" />
+        <box size="0.02 0.02 0.01"/>
       </geometry>
-    <material name="orange"/>
+      <material name="red"/>
     </visual>
-    <collision>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <box size="0.05 0.2 0.1" />
-      </geometry>
-    </collision>
+    <inertial>
+      <mass value="1e-5" />
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <inertia ixx="1e-6" ixy="0" ixz="0" iyy="1e-6" iyz="0" izz="1e-6" />
+    </inertial>
   </link>
 
+  <gazebo reference="front_left_corner_camera_link">
+    <material>Gazebo/Red</material>
+  </gazebo>
 
-  <joint name="front_sonar_joint" type="fixed">
-    <origin xyz="0 0.38 0.065" rpy="0 -1.5708 -1.5708"/>
-    <parent link="front_rack_link"/>
-    <child link="front_sonar_link"/>
+  <joint name="front_left_corner_camera_joint" type="fixed">
+    <origin xyz="0.1 0.6545 1.45" rpy="0 0.785 0.785"/>
+    <parent link="base_link"/>
+    <child link="front_left_corner_camera_link"/>
+    <axis xyz="0 0 0" />
   </joint>
 
-  <!-- Rear Sonar -->
-  <link name="rear_sonar_link">
-    <inertial>
-      <mass value="0.001" />
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <inertia ixx="0.000000017" ixy="0" ixz="0" iyy="0.000000017" iyz="0" izz="0.000000017" />
-    </inertial>
+  <!-- Front Left Corner Camera Optical Frame (For ROS Image/CameraInfo messages) -->
+  <link name="front_left_corner_camera_optical_frame"/>
+
+  <joint name="front_left_corner_camera_optical_joint" type="fixed">
+    <!-- -90 deg Roll, -90 deg Yaw rotation to align body frame with optical frame -->
+    <origin xyz="0 0 0" rpy="-1.5707963 0 -1.5707963"/>
+    <parent link="front_left_corner_camera_link"/>
+    <child link="front_left_corner_camera_optical_frame"/>
+  </joint>
+
+  <!-- Front Right Corner Camera -->
+  <link name="front_right_corner_camera_link">
+    <!-- <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.02 0.02 0.01"/>
+      </geometry>
+    </collision> -->
     <visual>
-      <origin xyz="0 0 0" rpy="0 0 0" />
+      <origin xyz="0 0 0" rpy="0 0 0"/>
       <geometry>
-        <box size="0.05 0.2 0.1" />
+        <box size="0.02 0.02 0.01"/>
       </geometry>
-    <material name="orange"/>
+      <material name="green"/>
     </visual>
-    <collision>
-      <origin xyz="0 0 0" rpy="0 0 0" />
-      <geometry>
-        <box size="0.05 0.2 0.1" />
-      </geometry>
-    </collision>
+    <inertial>
+      <mass value="1e-5" />
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <inertia ixx="1e-6" ixy="0" ixz="0" iyy="1e-6" iyz="0" izz="1e-6" />
+    </inertial>
   </link>
 
-  <joint name="rear_sonar_joint" type="fixed">
-    <origin xyz="0 0.38 0.065" rpy="0 -1.5708 -1.5708"/>
-    <parent link="rear_rack_link"/>
-    <child link="rear_sonar_link"/>
+  <gazebo reference="front_right_corner_camera_link">
+    <material>Gazebo/Green</material>
+  </gazebo>
+
+  <joint name="front_right_corner_camera_joint" type="fixed">
+    <origin xyz="0.1 -0.6535 1.45" rpy="0 0.785 -0.785"/>
+    <parent link="base_link"/>
+    <child link="front_right_corner_camera_link"/>
+    <axis xyz="0 0 0" />
+  </joint>
+
+    <!-- Front Right Corner Camera Optical Frame (For ROS Image/CameraInfo messages) -->
+  <link name="front_right_corner_camera_optical_frame"/>
+
+  <joint name="front_right_corner_camera_optical_joint" type="fixed">
+    <!-- -90 deg Roll, -90 deg Yaw rotation to align body frame with optical frame -->
+    <origin xyz="0 0 0" rpy="-1.5707963 0 -1.5707963"/>
+    <parent link="front_right_corner_camera_link"/>
+    <child link="front_right_corner_camera_optical_frame"/>
   </joint>
 
 </robot>

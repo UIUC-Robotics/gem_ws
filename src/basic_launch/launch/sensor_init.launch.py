@@ -130,7 +130,7 @@ def generate_launch_description():
             get_package_share_directory('depthai_ros_driver'), 'launch'),
             '/rgbd_pcl.launch.py']),
         launch_arguments={
-            'parent_frame' : 'front_camera_link'
+            'parent_frame' : 'oak_link'
         }.items(),
         condition=IfCondition(
             PythonExpression(["'", vehicle_name, "' == 'e4'"])

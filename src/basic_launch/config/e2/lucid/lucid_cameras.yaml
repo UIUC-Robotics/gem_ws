@@ -1,7 +1,7 @@
 arena_camera_node_fl:
   ros__parameters:
     camera_name: "camera_fl"
-    frame_id: "CAMERA_FL"
+    frame_id: "front_left_corner_camera_optical_frame"
     pixel_format: rgb8
     serial_no: 234200241
     camera_info_url: "package://lucid_vision_driver/config/camera_fl.yaml"
@@ -24,7 +24,7 @@ arena_camera_node_fl:
 arena_camera_node_fr:
   ros__parameters:
     camera_name: "camera_fr"
-    frame_id: "CAMERA_FR"
+    frame_id: "front_right_corner_camera_optical_frame"
     pixel_format: rgb8
     serial_no: 234200242
     camera_info_url: "package://lucid_vision_driver/config/camera_fr.yaml"

@@ -717,42 +717,43 @@
     <axis xyz="0 0 1" />
   </joint>
 
-  <link name="front_camera_link">
+  <!-- ************************* Front Oak Camera ************************* -->
+
+  <link name="oak_link">
     <inertial>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <mass value="0" />
       <inertia ixx="0" ixy="0" ixz="0" iyy="0" iyz="0" izz="0" />
     </inertial>
     <visual>
-      <origin xyz="0 0 0" rpy="0 0 0" />
+      <origin xyz="0 0 0" rpy="1.57 0 -1.57" />
       <geometry>
-        <mesh filename="package://gem_description/meshes/e4/front_camera_link.STL" />
+        <mesh filename="package://gem_description/meshes/e4/OAK-D-LR.stl" />
       </geometry>
-      <material name="">
-        <color rgba="0.8 0.8 0.9 1" />
-      </material>
+      <material name="white"/>
     </visual>
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://gem_description/meshes/e4/front_camera_link.STL" />
+        <mesh filename="package://gem_description/meshes/e4/OAK-D-LR.stl" />
       </geometry>
     </collision>
   </link>
 
-  <gazebo reference="front_camera_link">
+  <gazebo reference="oak_link">
     <material>Gazebo/White</material>
   </gazebo>
 
-  <joint name="front_camera_joint" type="fixed">
+  <joint name="oak_joint" type="fixed">
     <origin xyz="0.535 0 1.683" rpy="0 0 0" />
     <parent link="base_link" />
-    <child link="front_camera_link" />
+    <child link="oak_link" />
     <axis xyz="0 0 0" />
   </joint>
 
+  <!-- ************************* Front Livox Lidar ************************* -->
 
-  <link name="front_lidar_link">
+  <link name="livox_lidar_link">
     <inertial>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <mass value="0" />
@@ -761,7 +762,7 @@
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://gem_description/meshes/e4/front_lidar_link.STL" />
+        <mesh filename="package://gem_description/meshes/e4/livox_lidar.STL" />
       </geometry>
       <material name="">
         <color rgba="0.8 0.8 0.9 1" />
@@ -770,19 +771,19 @@
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
-        <mesh filename="package://gem_description/meshes/e4/front_lidar_link.STL" />
+        <mesh filename="package://gem_description/meshes/e4/livox_lidar.STL" />
       </geometry>
     </collision>
   </link>
 
-  <gazebo reference="front_lidar_link">
+  <gazebo reference="livox_lidar_link">
     <material>Gazebo/White</material>
   </gazebo>
 
-  <joint name="front_lidar_joint" type="fixed">
-    <origin xyz="0.38206 0 1.71" rpy="0 0.3 0" />
+  <joint name="livox_lidar_joint" type="fixed">
+    <origin xyz="0.4 0 1.78" rpy="0 0.323 0.018" />
     <parent link="base_link" />
-    <child link="front_lidar_link" />
+    <child link="livox_lidar_link" />
     <axis xyz="0 0 0" />
   </joint>
 
