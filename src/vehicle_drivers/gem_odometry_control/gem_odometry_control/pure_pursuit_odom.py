@@ -369,7 +369,14 @@ class PurePursuitOdom(Node):
 
 
 def main(args=None):
-    rclpy.init(args=args)
+    # See gem_gnss_control/pure_pursuit.py for the full explanation: rclpy's
+    # default SIGINT handler (SignalHandlerOptions.ALL) shuts down the
+    # context the instant Ctrl+C is pressed, racing ahead of any
+    # `except KeyboardInterrupt` cleanup here or in destroy_node(). Disabling
+    # it lets Ctrl+C fall through to Python's normal KeyboardInterrupt
+    # instead, raised synchronously inside rclpy.spin() below, so the
+    # context is still alive during cleanup.
+    rclpy.init(args=args, signal_handler_options=rclpy.SignalHandlerOptions.NO)
     node = PurePursuitOdom()
 
     try:

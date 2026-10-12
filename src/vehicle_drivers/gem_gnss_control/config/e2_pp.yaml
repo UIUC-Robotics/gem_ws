@@ -12,7 +12,7 @@ pure_pursuit:
     waypoints_file: 'my_track.csv'
     kick_start_accel: 0.3
     kick_start_duration: 1.0
-    kick_start_speed_threshold: 0.15
+    kick_start_speed_threshold: 0.10
     pid:
       kp: 0.6
       ki: 0.0

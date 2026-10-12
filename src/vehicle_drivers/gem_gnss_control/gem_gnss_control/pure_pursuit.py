@@ -119,7 +119,6 @@ class PurePursuit(Node):
         self.declare_parameter('filter/cutoff', 1.2)
         self.declare_parameter('filter/fs', 30)
         self.declare_parameter('filter/order', 4)
-        self.declare_parameter('vehicle_name', "")
         
         vehicle_name=self.get_parameter('vehicle_name').value
         if (vehicle_name==""):
@@ -421,9 +420,9 @@ class PurePursuit(Node):
 
             # Shifting gear to drive if not already in drive
             if self.current_gear != 3:  # FORWARD
-                # Only shift if current brake is above 25%
-                self.get_logger().info(f"Attempting to shift to FORWARD. Current brake: {self.current_brake:.2f}. Press brake above 25% to proceed.")
-                if self.current_brake > 0.25:
+                # Only shift if current brake is above 50%
+                self.get_logger().info(f"Attempting to shift to FORWARD. Current brake: {self.current_brake:.2f}. Press brake above 50% to proceed.")
+                if self.current_brake > 0.50:
                     self.gear_cmd.command = 3  # FORWARD
                     self.gear_pub.publish(self.gear_cmd)
             
@@ -515,7 +514,15 @@ class PurePursuit(Node):
         super().destroy_node()
 
 def main(args=None):
-    rclpy.init(args=args)
+    # Disable rclpy's built-in SIGINT handler (default: SignalHandlerOptions.ALL).
+    # That handler shuts down the ROS context the instant Ctrl+C is pressed,
+    # racing against (and usually winning over) our own `except
+    # KeyboardInterrupt` cleanup below - which is exactly why the "disable
+    # PACMod" publish in destroy_node() was failing with "publisher's
+    # context is invalid". With signal handling disabled here, Ctrl+C falls
+    # through to Python's normal KeyboardInterrupt, raised synchronously in
+    # rclpy.spin() below, so the context is still alive when we clean up.
+    rclpy.init(args=args, signal_handler_options=rclpy.SignalHandlerOptions.NO)
     pure_pursuit = PurePursuit()
 
     try:
