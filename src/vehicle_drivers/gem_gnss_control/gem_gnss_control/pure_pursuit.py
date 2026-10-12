@@ -3,8 +3,8 @@
 #================================================================
 # File name: pure_pursuit_ros2.py
 # Description: GNSS waypoints tracker using PID and pure pursuit in ROS2
-# Author: Jiaming Zhang, Hang Cui
-# Date: 2025-06-03
+# Author: Zillur Rahman, Jiaming Zhang, Hang Cui
+# Date: 2026-09-03
 #================================================================
 
 import os
@@ -88,6 +88,7 @@ class PurePursuit(Node):
     def __init__(self):
         super().__init__('pure_pursuit_node')
         # Declare parameters with default values
+        self.declare_parameter('vehicle_name', "e2")
         self.declare_parameter('rate_hz', 20)
         self.declare_parameter('look_ahead', 5.0)
         self.declare_parameter('wheelbase', 2.57)
@@ -98,6 +99,8 @@ class PurePursuit(Node):
         self.declare_parameter('max_accel', 0.5)
         self.declare_parameter('waypoints_file', 'track.csv')
         self.declare_parameter('stop_distance', 2.0)
+        
+        ## E2-specific kick-start parameters
         # Static-friction "kick-start": a single high accel command isn't held
         # long enough (one 50ms tick before the next control_loop call
         # recomputes it) for the actuator/motor controller to actually
@@ -124,7 +127,7 @@ class PurePursuit(Node):
         else:
             self.get_logger().info(f"Using vehicle config: {vehicle_name}")
 
-
+        self.vehicle_name = self.get_parameter('vehicle_name').value
         self.rate_hz = self.get_parameter('rate_hz').value
         self.look_ahead = self.get_parameter('look_ahead').value
         self.wheelbase = self.get_parameter('wheelbase').value
@@ -173,9 +176,6 @@ class PurePursuit(Node):
         self.turn_pub = self.create_publisher(SystemCmdInt, '/pacmod/turn_cmd', 10)
         self.steer_pub = self.create_publisher(PositionWithSpeed, '/pacmod/steering_cmd', 10)
 
-        # local_odom carries this node's own GNSS/INS-derived pose estimate
-        # (this package has no separate localization node, unlike
-        # gem_odometry_control's ekf_node, so it publishes its own).
         self.local_odom_pub = self.create_publisher(Odometry, '/gem/local_odom', 10)
         self.target_point_pub = self.create_publisher(PointStamped, '/pure_pursuit/target_point', 10)
 
@@ -333,9 +333,6 @@ class PurePursuit(Node):
     def control_loop(self):
         joy_enable = self.check_joystick_enable()
 
-        # Always publish the current pose estimate (for RViz/gem_pp_visualization),
-        # regardless of enable state, so localization can be inspected even
-        # before engaging autonomous control.
         curr_x, curr_y, curr_yaw = self.get_gem_state()
         self.publish_local_odom(curr_x, curr_y, curr_yaw)
 
@@ -429,10 +426,6 @@ class PurePursuit(Node):
                 if self.current_brake > 0.25:
                     self.gear_cmd.command = 3  # FORWARD
                     self.gear_pub.publish(self.gear_cmd)
-                    # Note: no accel kick here - it would be immediately
-                    # overwritten later this same tick by the PID-computed
-                    # throttle_cmd below anyway. The actual kick-start
-                    # happens once gear is confirmed FORWARD (see below).
             
             for i in range(self.wp_size):
                 self.dist_arr[i] = self.dist((self.path_points_x[i], self.path_points_y[i]), (curr_x, curr_y))
@@ -464,6 +457,8 @@ class PurePursuit(Node):
             pid_throttle_cmd = self.pid_speed.get_control(now, speed_error)
             pid_throttle_cmd = max(0.0, min(pid_throttle_cmd, self.max_accel))
 
+
+            ## E2-specific kick-start logic
             # Kick-start: once in FORWARD gear but still near a dead stop,
             # hold EXACTLY kick_start_accel continuously (across many ticks,
             # not just one) for up to kick_start_duration seconds, ignoring
@@ -473,7 +468,7 @@ class PurePursuit(Node):
             # friction while a sustained 0.5 does not, so this must not be
             # "at least kick_start_accel" (max() with the PID output), it
             # must be the specific calibrated value.
-            if self.current_gear == 3 and self.speed < self.kick_start_speed_threshold:
+            if self.vehicle_name == "e2" and self.current_gear == 3 and self.speed < self.kick_start_speed_threshold:
                 if not self.kick_start_active:
                     self.kick_start_active = True
                     self.kick_start_end_time = now + self.kick_start_duration
@@ -481,6 +476,7 @@ class PurePursuit(Node):
                         f"Kick-start: holding accel={self.kick_start_accel:.2f} for up to "
                         f"{self.kick_start_duration:.1f}s to break static friction")
                 if now < self.kick_start_end_time:
+                    self.get_logger().info(f"Waiting for kick-start to complete")
                     throttle_cmd = self.kick_start_accel
                 else:
                     # Timed out without the car moving - stop forcing it and
@@ -505,6 +501,19 @@ class PurePursuit(Node):
 
             self.get_logger().info(f"Current pose: ({curr_x:.2f}, {curr_y:.2f}, {curr_yaw:.2f}), Target: ({target_x:.2f}, {target_y:.2f}), Speed: {self.speed:.2f}, Throttle: {throttle_cmd:.2f}, Steering: {steering_wheel_angle:.2f}")
 
+    def destroy_node(self):
+        self.get_logger().info("Publishing final disable command...")
+        self.global_cmd.enable = False
+        
+        # Publish multiple times to give the DDS discovery/transport layer a chance
+        for _ in range(3):
+            self.global_pub.publish(self.global_cmd)
+            # Give the network stack a tiny window to flush the queue out
+            rclpy.spin_once(self, timeout_sec=0.05)
+            
+        self.get_logger().info("Destroying PurePursuit node")
+        super().destroy_node()
+
 def main(args=None):
     rclpy.init(args=args)
     pure_pursuit = PurePursuit()
@@ -514,6 +523,7 @@ def main(args=None):
     except KeyboardInterrupt:
         pass
     finally:
+        # Call destroy_node before rclpy.shutdown() while context is still alive
         pure_pursuit.destroy_node()
         rclpy.shutdown()
 
