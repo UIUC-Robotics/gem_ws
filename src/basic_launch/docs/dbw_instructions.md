@@ -1,14 +1,6 @@
 # Safe Engagement and Disengagement
 E2 and E4 drive-by-wire (dbw) have specific procedures to ensure safe engagement and disengagement as their dbw hardware behaves in different ways. The instructions below provide guidance for handling these vehicles safely. All the steps should be same for both vehicles except for the special instructions that apply specifically to the E2 model.
 
-TODO:
-* Engage
-* Shift gear to Drive or Reverse
-* Disengage via Joy command and shift gear to Neutral
-* Disengage via brake, throttle or steering wheel and shift gear to Neutral
-* Stop at the end of the run and shift gear to Neutral
-* Publish last Pacmod disable command
-
 ## Engagement Procedure
 
 To engage, bring the car to standstill and keep the gear in Neutral and parking brake disengaged. Publish the pacmod enable command to enable the drive-by-wire system. If you want to have more control on when you enable the Pacmod, you can use a Joystick to trigger the enable command just like we did in the pure pursuit control [here](https://github.com/UIUC-Robotics/gem_ws/blob/a9c70b6a592b1ae0491d7be7ff09cc4ff7f63831/src/vehicle_drivers/gem_gnss_control/gem_gnss_control/pure_pursuit.py#L340) which is triggered when the joystick LB+RB buttons are pressed together according to the logic [here](https://github.com/UIUC-Robotics/gem_ws/blob/a9c70b6a592b1ae0491d7be7ff09cc4ff7f63831/src/vehicle_drivers/gem_gnss_control/gem_gnss_control/pure_pursuit.py#L281).
