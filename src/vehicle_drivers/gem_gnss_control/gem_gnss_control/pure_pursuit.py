@@ -293,8 +293,6 @@ class PurePursuit(Node):
         elif lb and not rb:
             # disable
             self.get_logger().warn("Joystick Released")
-            self.gear_cmd.command = 2
-            self.gear_pub.publish(self.gear_cmd)
             return 0
         # others
         return 2
@@ -359,6 +357,9 @@ class PurePursuit(Node):
 
             self.turn_cmd.command = 1
             self.turn_pub.publish(self.turn_cmd)
+            
+            self.gear_cmd.command = 2
+            self.gear_pub.publish(self.gear_cmd)
 
             self.get_logger().warn('Joystick Disabled, Pacmod disabled')
 
@@ -501,9 +502,13 @@ class PurePursuit(Node):
             self.get_logger().info(f"Current pose: ({curr_x:.2f}, {curr_y:.2f}, {curr_yaw:.2f}), Target: ({target_x:.2f}, {target_y:.2f}), Speed: {self.speed:.2f}, Throttle: {throttle_cmd:.2f}, Steering: {steering_wheel_angle:.2f}")
 
     def destroy_node(self):
+        # Cancel and destroy the timer to stop the control loop before shutting down
+        self.timer.cancel()
+        self.destroy_timer(self.timer)
+        
         self.get_logger().info("Publishing final disable command...")
         self.global_cmd.enable = False
-        
+
         # Publish multiple times to give the DDS discovery/transport layer a chance
         for _ in range(3):
             self.global_pub.publish(self.global_cmd)

@@ -33,7 +33,3 @@ ros2 launch gem_gnss_control pure_pursuit.launch.py
 6. Car can be disengaged by pressing LB button only or pressing brake, throttle or steering wheel.
 7. Car should stop at the end of the track automatically and change gear to Neutral.
 8. At every disengagement, car should shift to Neutral gear automatically.
-
-# Safe Engagement and Disengagement
-
-E2 and E4 drive-by-wire (dbw) have specific procedures to ensure safe engagement and disengagement as their dbw hardware behaves different way.

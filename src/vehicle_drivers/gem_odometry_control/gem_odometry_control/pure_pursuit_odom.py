@@ -20,7 +20,7 @@ import rclpy
 from rclpy.node import Node
 
 from std_msgs.msg import Bool, Float32
-from pacmod2_msgs.msg import PositionWithSpeed, GlobalCmd, SystemCmdFloat, SystemCmdInt, GlobalRpt
+from pacmod2_msgs.msg import PositionWithSpeed, VehicleSpeedRpt, GlobalCmd, SystemCmdFloat, SystemCmdInt, GlobalRpt, SystemRptFloat, SystemRptInt
 from nav_msgs.msg import Odometry
 from geometry_msgs.msg import PointStamped
 
@@ -82,6 +82,7 @@ class PurePursuitOdom(Node):
     def __init__(self):
         super().__init__('pure_pursuit_odom_node')
 
+        self.declare_parameter('vehicle_name', 'e2')
         self.declare_parameter('rate_hz', 20)
         self.declare_parameter('look_ahead', 5.0)
         self.declare_parameter('wheelbase', 2.57)
@@ -107,6 +108,7 @@ class PurePursuitOdom(Node):
         self.declare_parameter('filter/fs', 30)
         self.declare_parameter('filter/order', 4)
 
+        self.vehicle_name = self.get_parameter('vehicle_name').value
         self.rate_hz = self.get_parameter('rate_hz').value
         self.look_ahead = self.get_parameter('look_ahead').value
         self.wheelbase = self.get_parameter('wheelbase').value
@@ -134,23 +136,26 @@ class PurePursuitOdom(Node):
         self.speed = 0.0
         self.have_odom = False
         self.pacmod_enable = False
-        self.pacmod_override_active = False
         self.brake_value = 0.0
+        self.is_stopping = False
+        self.stop_start_time = 0.0
+        self.ramp_duration = 1.5
+        self.max_stop_brake = 0.7
         self.kick_start_active = False
         self.kick_start_end_time = 0.0
 
         self.create_subscription(Odometry, odom_topic, self.odom_callback, 10)
         self.create_subscription(Bool, '/pacmod/enabled', self.enable_callback, 10)
-        # The bare pacmod2 driver only relays this flag - it does not react
-        # to it itself. We watch it so manually grabbing the wheel/pedals
-        # disengages autonomous control the same way it does under
-        # joystick teleop (pacmod2_game_control_exec).
-        self.create_subscription(GlobalRpt, '/pacmod/global_rpt', self.global_rpt_callback, 10)
-        # Published by gem_gnss_control's joystick_command node from the
-        # joystick's brake trigger axis, so the operator can manually brake
-        # on top of autonomous control (see gem_gnss_control/pure_pursuit.py
-        # for the matching GNSS-direct implementation).
+        self.create_subscription(VehicleSpeedRpt, '/pacmod/vehicle_speed_rpt', self.speed_callback, 10)
+        self.create_subscription(SystemRptFloat, '/pacmod/brake_rpt', self.brake_rpt_callback, 10)
+        self.current_brake = 0.0
+        self.create_subscription(SystemRptInt, '/pacmod/shift_rpt', self.shift_rpt_callback, 10)
+        self.current_gear = 2
+
         self.create_subscription(Float32, '/brake_value', self.brake_callback, 10)
+        self.pacmod_override_active = False
+        self.create_subscription(GlobalRpt, '/pacmod/global_rpt', self.global_rpt_callback, 10)
+
 
         self.global_pub = self.create_publisher(GlobalCmd, '/pacmod/global_cmd', 10)
         self.gear_pub = self.create_publisher(SystemCmdInt, '/pacmod/shift_cmd', 10)
@@ -205,9 +210,12 @@ class PurePursuitOdom(Node):
         elif lb and not rb:
             # disable
             self.get_logger().warn("Joystick Released")
+            self.gear_cmd.command = 2
+            self.gear_pub.publish(self.gear_cmd)
             return 0
         # others
         return 2
+
     
     def odom_callback(self, msg):
         self.curr_x = msg.pose.pose.position.x
@@ -222,8 +230,21 @@ class PurePursuitOdom(Node):
     def global_rpt_callback(self, msg):
         self.pacmod_override_active = msg.override_active
 
+        if self.pacmod_override_active:
+            # Operator physically grabbed the steering wheel/brake/accelerator.
+            self.global_cmd.enable = False
+            self.global_pub.publish(self.global_cmd)
+            self.get_logger().warn(
+                'Manual override detected on PACMod - disengaging autonomous control',
+                throttle_duration_sec=1.0)
+            self.gear_cmd.command = 2  # NEUTRAL
+            self.gear_pub.publish(self.gear_cmd)
+
     def brake_callback(self, msg):
         self.brake_value = msg.data
+
+    def shift_rpt_callback(self, msg):
+        self.current_gear = msg.output
 
     def publish_target_point(self, x, y):
         pt = PointStamped()
@@ -244,18 +265,6 @@ class PurePursuitOdom(Node):
 
     def control_loop(self):
         if not self.have_odom:
-            return
-
-        if self.pacmod_override_active:
-            # Operator physically grabbed the steering wheel/brake/accelerator.
-            # See gem_gnss_control/pure_pursuit.py for the full explanation -
-            # the bare pacmod2 driver only reports this, it doesn't react to
-            # it, so we disengage ourselves instead of fighting the manual input.
-            self.global_cmd.enable = False
-            self.global_pub.publish(self.global_cmd)
-            self.get_logger().warn(
-                'Manual override detected on PACMod - disengaging autonomous control',
-                throttle_duration_sec=1.0)
             return
 
         joy_enable = self.check_joystick_enable()
@@ -327,15 +336,7 @@ class PurePursuitOdom(Node):
             pid_throttle_cmd = self.pid_speed.get_control(now, speed_error)
             pid_throttle_cmd = max(0.0, min(pid_throttle_cmd, self.max_accel))
 
-            # Kick-start: hold EXACTLY kick_start_accel continuously across
-            # many ticks (not just one) while speed is still near zero, for
-            # up to kick_start_duration seconds, ignoring the PID entirely
-            # during this window. A larger commanded value (e.g. the PID's
-            # max_accel-clamped output) is NOT a safe substitute - testing
-            # showed a sustained 0.3 breaks static friction while a
-            # sustained 0.5 does not, so this must not be "at least
-            # kick_start_accel" (max() with the PID output).
-            if self.speed < self.kick_start_speed_threshold:
+            if self.vehicle_name == "e2" and self.current_gear == 3 and self.speed < self.kick_start_speed_threshold:
                 if not self.kick_start_active:
                     self.kick_start_active = True
                     self.kick_start_end_time = now + self.kick_start_duration
@@ -343,15 +344,18 @@ class PurePursuitOdom(Node):
                         f"Kick-start: holding accel={self.kick_start_accel:.2f} for up to "
                         f"{self.kick_start_duration:.1f}s to break static friction")
                 if now < self.kick_start_end_time:
+                    self.get_logger().info(f"Waiting for kick-start to complete")
                     throttle_cmd = self.kick_start_accel
                 else:
                     # Timed out without the car moving - stop forcing it and
-                    # fall back to the plain PID output.
+                    # fall back to the plain PID output (avoid getting stuck
+                    # commanding kick_start_accel forever if something else
+                    # is actually preventing movement).
                     self.kick_start_active = False
                     throttle_cmd = pid_throttle_cmd
             else:
-                # Already rolling - clear kick-start state so it can re-arm
-                # next time the car comes to a stop.
+                # Already rolling (or not yet in FORWARD) - clear kick-start
+                # state so it can re-arm next time the car comes to a stop.
                 self.kick_start_active = False
                 throttle_cmd = pid_throttle_cmd
 
@@ -367,15 +371,24 @@ class PurePursuitOdom(Node):
                 f"Current: ({curr_x:.2f}, {curr_y:.2f}, {curr_yaw:.2f}), Target: ({target_x:.2f}, {target_y:.2f}), Speed: {self.speed:.2f}, Throttle: {throttle_cmd:.2f}, Steering: {steering_wheel_angle:.2f}"
             )
 
+    def destroy_node(self):
+        # Cancel and destroy the timer to stop the control loop before shutting down
+        self.timer.cancel()
+        self.destroy_timer(self.timer)
+        
+        self.get_logger().info("Publishing final disable command...")
+        self.global_cmd.enable = False
+
+        # Publish multiple times to give the DDS discovery/transport layer a chance
+        for _ in range(3):
+            self.global_pub.publish(self.global_cmd)
+            # Give the network stack a tiny window to flush the queue out
+            rclpy.spin_once(self, timeout_sec=0.05)
+            
+        self.get_logger().info("Destroying PurePursuit node")
+        super().destroy_node()
 
 def main(args=None):
-    # See gem_gnss_control/pure_pursuit.py for the full explanation: rclpy's
-    # default SIGINT handler (SignalHandlerOptions.ALL) shuts down the
-    # context the instant Ctrl+C is pressed, racing ahead of any
-    # `except KeyboardInterrupt` cleanup here or in destroy_node(). Disabling
-    # it lets Ctrl+C fall through to Python's normal KeyboardInterrupt
-    # instead, raised synchronously inside rclpy.spin() below, so the
-    # context is still alive during cleanup.
     rclpy.init(args=args, signal_handler_options=rclpy.SignalHandlerOptions.NO)
     node = PurePursuitOdom()
 

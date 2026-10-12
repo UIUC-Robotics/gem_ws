@@ -40,3 +40,6 @@ ros2 launch basic_launch gnss.launch.py
 
 # launch waypoint following controller
 Follow instructions on [here](src/vehicle_drivers/gem_gnss_control/README.md) to launch the waypoint following controller.
+
+# To learn how to safely engage and disengage the drive-by-wire system
+Follow instructions on [here](src/basic_launch/docs/dbw_instructions.md). This doc explains how you can write code to engage and disengage the drive-by-wire system safely, how to move the car from Neutral to Drive or Reverse, how to stop at the end of your run, and how to publish the last Pacmod disable command when you terminate your autonomy node by pressing ctrl+c in the terminal.
