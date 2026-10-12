@@ -26,7 +26,7 @@ class JoystickCommand(Node):
         self.joy_sub = self.create_subscription(Joy, '/joy', self.joy_callback, 10)
 
         # Publishers
-        self.float_pub = self.create_publisher(Float32, '/brake_value', 10)
+        self.float_pub = self.create_publisher(Float32, '/joystick/brake_value', 10)
 
     def joy_callback(self, msg: Joy):
         # Safety check to ensure the joystick array contains the expected axis

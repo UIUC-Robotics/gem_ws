@@ -163,7 +163,7 @@ class PurePursuit(Node):
         self.create_subscription(SystemRptInt, '/pacmod/shift_rpt', self.shift_rpt_callback, 10)
         self.current_gear = 2
         
-        self.create_subscription(Float32, '/brake_value', self.brake_callback, 10)
+        self.create_subscription(Float32, '/joystick/brake_value', self.brake_callback, 10)
         self.pacmod_override_active = False
         self.create_subscription(GlobalRpt, '/pacmod/global_rpt', self.global_rpt_callback, 10)
 
@@ -226,12 +226,13 @@ class PurePursuit(Node):
         if self.pacmod_override_active:
             # Operator physically grabbed the steering wheel/brake/accelerator.
             self.global_cmd.enable = False
-            self.global_pub.publish(self.global_cmd)
             self.get_logger().warn(
                 'Manual override detected on PACMod - disengaging autonomous control',
                 throttle_duration_sec=1.0)
             self.gear_cmd.command = 2  # NEUTRAL
             self.gear_pub.publish(self.gear_cmd)
+
+            self.global_pub.publish(self.global_cmd)
 
     def brake_callback(self, msg):
         self.brake_value = msg.data
@@ -353,14 +354,14 @@ class PurePursuit(Node):
         elif joy_enable == 0 and self.pacmod_enable:
             # joystick disable when vehicle enbaled
             self.global_cmd.enable = False
-            self.global_pub.publish(self.global_cmd)
 
             self.turn_cmd.command = 1
             self.turn_pub.publish(self.turn_cmd)
             
             self.gear_cmd.command = 2
             self.gear_pub.publish(self.gear_cmd)
-
+            
+            self.global_pub.publish(self.global_cmd)
             self.get_logger().warn('Joystick Disabled, Pacmod disabled')
 
         elif joy_enable != 0 and self.pacmod_enable:
