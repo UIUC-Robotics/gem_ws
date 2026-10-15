@@ -42,6 +42,11 @@ class PID:
         self.last_e = 0
         self.last_t = None
 
+    def reset(self):
+        self.iterm = 0
+        self.last_e = 0
+        self.last_t = None
+
     def get_control(self, t, e):
         if self.last_t is None:
             dt = 0.0
@@ -90,6 +95,7 @@ class PurePursuitOdom(Node):
         self.declare_parameter('max_accel', 0.5)
         self.declare_parameter('odom_topic', '/odometry/filtered')
         self.declare_parameter('waypoints_file', 'track_odom.csv')
+        self.declare_parameter('stop_distance', 2.0)
         # Static-friction "kick-start": see gem_gnss_control/pure_pursuit.py
         # for the full explanation - a brief accel command isn't always held
         # long enough to overcome stiction from a dead stop. We hold at
@@ -115,6 +121,7 @@ class PurePursuitOdom(Node):
         self.desired_speed = min(5.0, self.get_parameter('desired_speed').value)
         self.max_accel = min(2.0, self.get_parameter('max_accel').value)
         odom_topic = self.get_parameter('odom_topic').value
+        self.stop_dist_threshold = self.get_parameter('stop_distance').value
         self.kick_start_accel = self.get_parameter('kick_start_accel').value
         self.kick_start_duration = self.get_parameter('kick_start_duration').value
         self.kick_start_speed_threshold = self.get_parameter('kick_start_speed_threshold').value
@@ -227,6 +234,12 @@ class PurePursuitOdom(Node):
     def enable_callback(self, msg):
         self.pacmod_enable = msg.data
 
+    def speed_callback(self, msg):
+        self.speed = self.speed_filter.get_data(msg.vehicle_speed)
+
+    def brake_rpt_callback(self, msg):
+        self.current_brake = msg.output
+
     def global_rpt_callback(self, msg):
         self.pacmod_override_active = msg.override_active
 
@@ -316,11 +329,65 @@ class PurePursuitOdom(Node):
             target_y = self.path_points_y[self.goal]
             self.publish_target_point(target_x, target_y)
 
-            # Only actuate once PACMod is actually enabled - target/pose above
-            # are still published continuously for visualization purposes.
-            if not self.pacmod_enable:
-                return
+            # Check distance to the FINAL waypoint in the track
+            end_x = self.path_points_x[-1]
+            end_y = self.path_points_y[-1]
+            dist_to_end = self.dist((end_x, end_y), (curr_x, curr_y))
 
+            # Trigger stopping sequence if close to final waypoint or already in stopping sequence
+            if dist_to_end <= self.stop_dist_threshold or self.is_stopping:
+                now_sec = self.get_clock().now().nanoseconds * 1e-9
+
+                # First iteration entering stop state
+                if not self.is_stopping:
+                    self.is_stopping = True
+                    self.stop_start_time = now_sec
+                    self.pid_speed.reset()
+                    self.get_logger().warn(
+                        f"Final waypoint reached ({dist_to_end:.2f}m). Initiating smooth braking sequence..."
+                    )
+
+                # Elapsed time since stopping triggered
+                elapsed = now_sec - self.stop_start_time
+
+                # 1. Zero accelerator command
+                self.accel_cmd.command = 0.0
+                self.accel_pub.publish(self.accel_cmd)
+
+                # 2. Smoothly ramp brake from 0.0 to 0.5 max over ramp_duration (2.0s)
+                brake_target = min(self.max_stop_brake, self.max_stop_brake * (elapsed / self.ramp_duration))
+                self.brake_cmd.command = brake_target
+                self.brake_pub.publish(self.brake_cmd)
+
+                # 3. Center steering wheel during stop
+                self.steer_cmd.angular_position = 0.0
+                self.steer_pub.publish(self.steer_cmd)
+
+                # 4. Gear shifting logic: Keep FORWARD (3) while moving, shift to NEUTRAL (2) once stationary
+                if self.speed < 0.05:  # Vehicle is fully stopped
+                    self.gear_cmd.command = 2  # NEUTRAL
+                    self.get_logger().info("Vehicle completely stopped. Gear shifted to NEUTRAL.", throttle_duration_sec=2.0)
+                    self.is_stopping = False
+                else:
+                    self.gear_cmd.command = 3  # Keep FORWARD until stopped
+                    self.get_logger().info(f"Decelerating... Speed: {self.speed:.2f} m/s, Brake: {brake_target:.2f}", throttle_duration_sec=0.5)
+
+                self.gear_pub.publish(self.gear_cmd)
+
+                # Maintain PACMod enable so brake pressure remains active
+                self.global_cmd.enable = True
+                self.global_pub.publish(self.global_cmd)
+
+                return            
+
+            # Shifting gear to drive if not already in drive
+            if self.current_gear != 3:  # FORWARD
+                # Only shift if current brake is above 50%
+                self.get_logger().info(f"Attempting to shift to FORWARD. Current brake: {self.current_brake:.2f}. Press brake above 50% to proceed.")
+                if self.current_brake > 0.50:
+                    self.gear_cmd.command = 3  # FORWARD
+                    self.gear_pub.publish(self.gear_cmd)
+            
             alpha = math.atan2(target_y - curr_y, target_x - curr_x) - curr_yaw
             curvature = 0.0 if self.speed < 0.2 else 2.0 * math.sin(alpha) / ld
             steering_angle = math.atan(self.wheelbase * curvature)
@@ -329,6 +396,7 @@ class PurePursuitOdom(Node):
             self.steer_cmd.angular_position = math.radians(steering_wheel_angle)
             self.steer_pub.publish(self.steer_cmd)
 
+            # Speed control
             now = self.get_clock().now().nanoseconds * 1e-9
             speed_error = self.desired_speed - self.speed
             if abs(speed_error) < 0.05:
@@ -336,6 +404,17 @@ class PurePursuitOdom(Node):
             pid_throttle_cmd = self.pid_speed.get_control(now, speed_error)
             pid_throttle_cmd = max(0.0, min(pid_throttle_cmd, self.max_accel))
 
+
+            ## E2-specific kick-start logic
+            # Kick-start: once in FORWARD gear but still near a dead stop,
+            # hold EXACTLY kick_start_accel continuously (across many ticks,
+            # not just one) for up to kick_start_duration seconds, ignoring
+            # the PID entirely during this window. A larger commanded value
+            # (e.g. the PID's max_accel-clamped output) is NOT a safe
+            # substitute here - testing showed a sustained 0.3 breaks static
+            # friction while a sustained 0.5 does not, so this must not be
+            # "at least kick_start_accel" (max() with the PID output), it
+            # must be the specific calibrated value.
             if self.vehicle_name == "e2" and self.current_gear == 3 and self.speed < self.kick_start_speed_threshold:
                 if not self.kick_start_active:
                     self.kick_start_active = True
@@ -367,9 +446,7 @@ class PurePursuitOdom(Node):
             self.global_cmd.enable = True
             self.global_pub.publish(self.global_cmd)
 
-            self.get_logger().info(
-                f"Current: ({curr_x:.2f}, {curr_y:.2f}, {curr_yaw:.2f}), Target: ({target_x:.2f}, {target_y:.2f}), Speed: {self.speed:.2f}, Throttle: {throttle_cmd:.2f}, Steering: {steering_wheel_angle:.2f}"
-            )
+            self.get_logger().info(f"Current pose: ({curr_x:.2f}, {curr_y:.2f}, {curr_yaw:.2f}), Target: ({target_x:.2f}, {target_y:.2f}), Speed: {self.speed:.2f}, Throttle: {throttle_cmd:.2f}, Steering: {steering_wheel_angle:.2f}")
 
     def destroy_node(self):
         # Cancel and destroy the timer to stop the control loop before shutting down
@@ -389,6 +466,14 @@ class PurePursuitOdom(Node):
         super().destroy_node()
 
 def main(args=None):
+    # Disable rclpy's built-in SIGINT handler (default: SignalHandlerOptions.ALL).
+    # That handler shuts down the ROS context the instant Ctrl+C is pressed,
+    # racing against (and usually winning over) our own `except
+    # KeyboardInterrupt` cleanup below - which is exactly why the "disable
+    # PACMod" publish in destroy_node() was failing with "publisher's
+    # context is invalid". With signal handling disabled here, Ctrl+C falls
+    # through to Python's normal KeyboardInterrupt, raised synchronously in
+    # rclpy.spin() below, so the context is still alive when we clean up.
     rclpy.init(args=args, signal_handler_options=rclpy.SignalHandlerOptions.NO)
     node = PurePursuitOdom()
 
@@ -397,6 +482,7 @@ def main(args=None):
     except KeyboardInterrupt:
         pass
     finally:
+        # Call destroy_node before rclpy.shutdown() while context is still alive
         node.destroy_node()
         rclpy.shutdown()
 

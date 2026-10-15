@@ -10,12 +10,24 @@ colcon build --symlink-install
 
 # launch all sensors
 ```bash
+
+# Terminal 1: source the workspace and launch robot description (this is necessary to establish the coordinate frames)
+source install/setup.bash
+ros2 launch basic_launch robot_description.launch.py
+
+# Terminal 2: source the workspace and launch all sensors
 source install/setup.bash
 ros2 launch basic_launch sensor_init.launch.py
 ```
 
 # launch only corner cameras
 ```bash
+
+# Terminal 1: source the workspace and launch robot description
+source install/setup.bash
+ros2 launch basic_launch robot_description.launch.py
+
+# Terminal 2: source the workspace and launch corner cameras
 source install/setup.bash
 ros2 launch basic_launch corner_cameras.launch.py
 ```
@@ -26,7 +38,7 @@ source install/setup.bash
 ros2 launch basic_launch dbw_joystick.launch.py
 ```
 
-# launch drive by wire and robot state publisher
+# launch drive by wire and robot description
 ```bash
 source install/setup.bash
 ros2 launch basic_launch dbw_only.launch.py
@@ -34,6 +46,12 @@ ros2 launch basic_launch dbw_only.launch.py
 
 # launch GNSS/INS only
 ```bash
+
+# Terminal 1: source the workspace and launch robot description
+source install/setup.bash
+ros2 launch basic_launch robot_description.launch.py
+
+# Terminal 2: source the workspace and launch GNSS/INS only
 source install/setup.bash
 ros2 launch basic_launch gnss.launch.py
 ```

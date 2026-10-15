@@ -9,28 +9,14 @@ from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription
 from launch.substitutions import LaunchConfiguration
 
 def generate_launch_description():
-    vehicle_env=os.environ.get('VEHICLE_NAME','e4')
-    urdf_file = 'gem_'+ vehicle_env +'.urdf.xacro'
-    package_description = "gem_description"
-
-    print("Fetching URDF ==>")
-    robot_desc_path = os.path.join(get_package_share_directory(package_description), "urdf",vehicle_env, urdf_file)
-
-    robot_state_publisher_node = Node(
-        package='robot_state_publisher',
-        executable='robot_state_publisher',
-        name='robot_state_publisher_node',
-        # emulate_tty=True,
-        parameters=[{'use_sim_time': False, 'robot_description': Command(['xacro ', robot_desc_path])}],
-        output="screen"
-    )
-
-    joint_state_publisher_node = Node(
-        package='joint_state_publisher',
-        executable='joint_state_publisher',
-        name='joint_state_publisher_node',
-        # emulate_tty=True,
-        output="screen"
+    robot_description_launch = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            os.path.join(
+                get_package_share_directory('basic_launch'),
+                'launch',
+                'robot_description.launch.py'
+            )
+        )
     )
 
     pacmod_launch = IncludeLaunchDescription(
@@ -44,7 +30,6 @@ def generate_launch_description():
     )
 
     return LaunchDescription([
-        robot_state_publisher_node,
-        joint_state_publisher_node,
+        robot_description_launch,
         pacmod_launch
     ])
