@@ -30,7 +30,7 @@ osnma:
 
 frame_id: left_antenna_link
 
-imu_frame_id: IMU_link
+imu_frame_id: imu_link
 
 poi_frame_id: base_link
 

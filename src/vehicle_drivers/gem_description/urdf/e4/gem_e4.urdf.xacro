@@ -726,7 +726,7 @@
       <inertia ixx="0" ixy="0" ixz="0" iyy="0" iyz="0" izz="0" />
     </inertial>
     <visual>
-      <origin xyz="0 0 0" rpy="1.57 0 -1.57" />
+      <origin xyz="0 0 0" rpy="1.57 0 1.57" />
       <geometry>
         <mesh filename="package://gem_description/meshes/e4/OAK-D-LR.stl" />
       </geometry>
@@ -1034,42 +1034,6 @@
     <origin xyz="0 0 0" rpy="-1.5707963 0 -1.5707963"/>
     <parent link="rear_right_corner_camera_link"/>
     <child link="rear_right_corner_camera_optical_frame"/>
-  </joint>
-
-
-  <!-- IMU -->
-  <link name="IMU_link">
-    <collision>
-      <origin xyz="0 0 0" rpy="0 0 0"/>
-      <geometry>
-        <box size="0.1 0.1 0.1"/>
-      </geometry>
-    </collision>
-    <visual>
-      <origin xyz="0 0 0" rpy="0 0 0"/>
-      <geometry>
-        <box size="0.1 0.1 0.1"/>
-      </geometry>
-      <material name="red"/>
-    </visual>
-    <inertial>
-      <origin xyz="0 0 0" rpy="0 0 0"/>
-      <mass value="1"/>
-      <inertia
-        ixx="1.0" ixy="0.0" ixz="0.0"
-        iyy="1.0" iyz="0.0"
-        izz="1.0"/>
-    </inertial>
-  </link>
-
-  <gazebo reference="IMU_link">
-    <material>Gazebo/White</material>
-  </gazebo>
-
-  <joint name="IMU_joint" type="fixed">
-    <origin xyz="-0.246 0 0.05" rpy="0 0 -1.5708"/>
-    <parent link="base_link"/>
-    <child link="IMU_link"/>
   </joint>
 
 
