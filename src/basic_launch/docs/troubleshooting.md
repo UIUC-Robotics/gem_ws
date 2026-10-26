@@ -5,8 +5,7 @@ This document provides guidance for troubleshooting common issues encountered wh
 ## Drive-by-wire not responding
 
 If you run Joystick control but the GEM car does not respond and you see this CAN Buffer warning message in the terminal, it indicates that the drive-by-wire system is not receiving commands from the joystick. 
-
-TODO: add the screenshot
+![CAN Buffer Warning](assets/can_buffer.jpeg)
 
 ### Possible Solutions
 
