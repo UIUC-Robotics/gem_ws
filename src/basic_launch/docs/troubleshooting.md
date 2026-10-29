@@ -2,7 +2,7 @@
 
 This document provides guidance for troubleshooting common issues encountered when using the GEM car.
 
-## Drive-by-wire not responding
+## Drive-by-wire showing CAN Buffer Warning
 
 If you run Joystick control but the GEM car does not respond and you see this CAN Buffer warning message in the terminal, it indicates that the drive-by-wire system is not receiving commands from the joystick. 
 ![CAN Buffer Warning](assets/can_buffer.jpeg)
@@ -11,6 +11,18 @@ If you run Joystick control but the GEM car does not respond and you see this CA
 
 1. Check all the emergency buttons inside and outside the GEM car. If any of the emergency button is pressed, rotate it to release the emergency state.
 ![Emergency Buttons](assets/emergency_buttons.jpeg)
+
+## Drive-by-wire Not Responding
+
+If you do not see any error/warning messages yet the GEM car does not respond to joystick commands, check the brake motor position from this ros topic. If it is not close to 5.0, you may need to adjust it.
+```bash
+ros2 topic echo /pacmod/brake_motor_rpt_1
+```
+![Brake Motor Position](assets/brake_motor_rpt.jpeg)
+
+Take off the front cover to access the motor shaft. You can rotate the motor shaft position by hand as shown in the image. Make sure the position is close to 5.0.
+![Brake Motor](assets/brake_motor.jpeg)
+
 
 ## E4 Front Camera Button is Red
 
