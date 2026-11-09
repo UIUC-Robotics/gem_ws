@@ -30,10 +30,6 @@
       </visual>
     </link>
 
-    <!-- ${lidar_link} and ${imu_link} are not defined here: the Ouster driver
-         publishes ${name} -> ${lidar_link}/${imu_link} on /tf_static from the
-         sensor's factory metadata, and a second URDF copy would conflict. -->
-
     <!-- Gazebo requires the ouster_gazebo_plugins package -->
     <gazebo reference="${name}">
         <sensor type="ray" name="${name}-OS1-64">

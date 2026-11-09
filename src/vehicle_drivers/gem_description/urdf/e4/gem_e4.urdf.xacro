@@ -646,9 +646,7 @@
 
   <!-- ************************************* Sensor Links ************************************* -->
   <xacro:OS1_64 parent="top_rack_link" name="os_sensor" topic_points="/ouster/points" topic_imu ="/ouster/imu" hz="10" lasers="64" samples="512" min_range="0.9" max_range="75.0" noise="0.008" min_angle="-${M_PI}" max_angle="${M_PI}" lidar_link="os_lidar" imu_link="os_imu" vfov_min="-.26" vfov_max=".26" >
-    <!-- rpy from lidarslam calibration (base_link->os_lidar = -0.0059,-0.01255,0,0.9999 / -0.15,0,2.1182 with the
-         Ouster driver os_sensor->os_lidar yaw pi); was rpy="1.5708 0 3.1416" -->
-    <origin xyz="0.02 0.42 0" rpy="1.5826 -0.00015 -3.11649" />
+    <origin xyz="0.02 0.42 0" rpy="-1.5826 -0.00015 -3.11649" />
   </xacro:OS1_64>
   
   <link name="gps_antenna_main_link">
