@@ -1131,8 +1131,8 @@
     <axis xyz="0 0 0"/>
   </joint>
   <joint name="os_sensor_mount_joint" type="fixed">
-    <origin rpy="-1.5826 -0.00015 -3.11649" xyz="0.02 0.42 0"/>
-    <parent link="top_rack_link"/>
+    <origin rpy="0.011804 0.025103 0.00015" xyz="-0.15 0 2.08"/>
+    <parent link="base_link"/>
     <child link="os_sensor"/>
   </joint>
   <link name="os_sensor">
