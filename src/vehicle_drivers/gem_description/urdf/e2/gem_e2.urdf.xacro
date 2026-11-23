@@ -1207,7 +1207,7 @@
   <!-- *********************************************** Sensors ************************************************ -->
 
  <xacro:OS1_64 parent="gem_body_link" name="os_sensor" topic_points="/ouster/points" topic_imu ="/ouster/imu" hz="10" lasers="64" samples="512" min_range="0.9" max_range="75.0" noise="0.008" min_angle="-${M_PI}" max_angle="${M_PI}" lidar_link="os_lidar" imu_link="os_imu" vfov_min="-.26" vfov_max=".26" >
-    <origin xyz="-0.12172 0 1.5071" rpy="0 0 3.1416" />
+    <origin xyz="-0.25 0.0 1.5071" rpy="0 0.05 0" />
   </xacro:OS1_64>
 
   <!-- ************************* Front Zed Camera ************************* -->
@@ -1235,7 +1235,7 @@
 
 
   <joint name="zed_camera_joint" type="fixed">
-    <origin xyz="0.394 0 1.35" rpy="0 0 0"/>
+    <origin xyz="0.20 0 1.30" rpy="0 0 0"/>
     <parent link="gem_body_link"/>
     <child link="zed_camera_link"/>
   </joint>

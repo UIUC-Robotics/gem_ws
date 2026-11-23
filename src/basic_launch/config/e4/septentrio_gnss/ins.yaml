@@ -44,7 +44,7 @@ local_frame_id: odom
 
 insert_local_frame: false
 
-get_spatial_config_from_tf: true
+get_spatial_config_from_tf: false
 
 lock_utm_zone: true
 
@@ -66,7 +66,7 @@ ant_aux1_type: "TWI7972+GP NONE"
 ant_aux1_serial_nr: "Unknown"
 
 polling_period:
-  pvt: 0
+  pvt: 10
   rest: 500
 
 use_gnss_time: false
@@ -142,14 +142,14 @@ ins_spatial_config:
     theta_x: 180.0
     theta_y: 0.0
     theta_z: 0.0
-  poi_lever_arm:
-    delta_x: 0.0
-    delta_y: 0.0
-    delta_z: 0.0
-  ant_lever_arm:
+  poi_lever_arm: # point of interest (base link) wrt IMU frame when get_spatial_config_from_tf is false in front-right-down frame
+    delta_x: -1.28
+    delta_y: -0.0005
+    delta_z: 0.45
+  ant_lever_arm: # left/main antenna link wrt IMU frame when get_spatial_config_from_tf is false in front-right-down frame
     x: 0.0
-    y: -0.635
-    z: -1.580
+    y: -0.65
+    z: -1.51
   vsm_lever_arm:
     vsm_x: 0.0
     vsm_y: 0.0
