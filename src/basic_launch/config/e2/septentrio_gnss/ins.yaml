@@ -17,7 +17,7 @@ stream_device:
     port: 0
     unicast_ip: ""
 
-configure_rx: false
+configure_rx: true
 
 login:
   user: ""

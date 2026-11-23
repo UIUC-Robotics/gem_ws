@@ -67,20 +67,20 @@
 
   <!-- colors used by Gazebo -->
 
-  <gazebo reference="base_link">
+  <gazebo reference="gem_body_link">
     <material>Gazebo/White</material>
     <sensor type="contact" name="base_contact_sensor">
       <update_rate>50</update_rate>
       <always_on>true</always_on>
       <contact>
-        <collision>base_footprint_fixed_joint_lump__base_link_collision</collision>
+        <collision>base_link_fixed_joint_lump__gem_body_link_collision</collision>
       </contact>
       <plugin name="base_bumper" filename="libgazebo_ros_bumper.so">
         <ros>
           <namespace>/</namespace>
           <remapping>~/contacts:=contact_sensor</remapping>
         </ros>
-        <frameName>base_link</frameName>
+        <frameName>gem_body_link</frameName>
         <bumperTopicName>contact_sensor</bumperTopicName>
         <updateRate>50</updateRate>
         <contactTopicName>contact_sensor</contactTopicName>
@@ -110,7 +110,7 @@
       <update_rate>50</update_rate>
       <always_on>true</always_on>
       <contact>
-        <collision>base_footprint_fixed_joint_lump__front_rack_link_collision_6</collision>
+        <collision>base_link_fixed_joint_lump__front_rack_link_collision_2</collision>
       </contact>
       <plugin name="front_rack_bumper" filename="libgazebo_ros_bumper.so">
         <ros>
@@ -133,7 +133,7 @@
       <update_rate>50</update_rate>
       <always_on>true</always_on>
       <contact>
-        <collision>base_footprint_fixed_joint_lump__rear_rack_link_collision_19</collision>
+        <collision>base_link_fixed_joint_lump__rear_rack_link_collision_17</collision>
       </contact>
       <plugin name="rear_rack_bumper" filename="libgazebo_ros_bumper.so">
         <ros>

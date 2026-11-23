@@ -22,7 +22,20 @@
 
   <xacro:include filename="$(find gem_description)/urdf/ouster/OS1-64.urdf.xacro" />
 
+  <!-- Vehicle reference frame: ground projection of the rear axle center -->
   <link name="base_link">
+  </link>
+
+  <!-- base_link -> gem_body_link
+       rear axle center in body frame: (-1.2904, 0.0005, 0.027); wheel radius 0.295 -> ground at z = -0.268 -->
+  <joint name="gem_body_joint" type="fixed">
+    <origin xyz="1.2904 -0.0005 0.268" rpy="0 0 0" />
+    <parent link="base_link" />
+    <child link="gem_body_link" />
+  </joint>
+
+  <!-- Main structural frame of the vehicle -->
+  <link name="gem_body_link">
     <inertial>
       <origin xyz="-0.01178 0.0012042 0.47962" rpy="0 0 0" />
       <mass value="1950.5" />
@@ -51,15 +64,16 @@
     </collision>
   </link>
 
-  <gazebo reference="base_link">
+  <gazebo reference="gem_body_link">
     <material>Gazebo/Blue</material>
   </gazebo>
 
+  <!-- base_footprint coincides with base_link (already on the ground) -->
   <link name="base_footprint">
   </link>
 
   <joint name="base_footprint_joint" type="fixed">
-    <origin xyz="0 0 -0.268" rpy="0 0 0" />
+    <origin xyz="0 0 0" rpy="0 0 0" />
     <parent link="base_link" />
     <child link="base_footprint" />
   </joint>
@@ -98,7 +112,7 @@
 
   <joint name="top_rack_joint" type="fixed">
     <origin xyz="-0.17 0 1.66" rpy="1.5708 0 0" />
-    <parent link="base_link" />
+    <parent link="gem_body_link" />
     <child link="top_rack_link" />
     <axis xyz="0 0 0" />
   </joint>
@@ -134,7 +148,7 @@
 
   <joint name="front_rack_joint" type="fixed">
     <origin xyz="1.7594 0 -0.15" rpy="1.5708 0 1.5708" />
-    <parent link="base_link" />
+    <parent link="gem_body_link" />
     <child link="front_rack_link" />
     <axis xyz="0 0 0" />
   </joint>
@@ -170,7 +184,7 @@
 
   <joint name="rear_rack_joint" type="fixed">
     <origin xyz="-1.7372 0 -0.1" rpy="1.5708 0 -1.5708" />
-    <parent link="base_link" />
+    <parent link="gem_body_link" />
     <child link="rear_rack_link" />
     <axis xyz="0 0 0" />
   </joint>
@@ -206,7 +220,7 @@
 
   <joint name="headlight_fr_joint" type="fixed">
     <origin xyz="1.1677 -0.5 0.765" rpy="0 0 0" />
-    <parent link="base_link" />
+    <parent link="gem_body_link" />
     <child link="headlight_fr_link" />
     <axis xyz="0 0 0" />
   </joint>
@@ -242,7 +256,7 @@
 
   <joint name="headlight_fl_joint" type="fixed">
     <origin xyz="1.1677 0.5 0.765" rpy="0 0 0" />
-    <parent link="base_link" />
+    <parent link="gem_body_link" />
     <child link="headlight_fl_link" />
     <axis xyz="0 0 0" />
   </joint>
@@ -278,7 +292,7 @@
 
   <joint name="turnlight_fl_joint" type="fixed">
     <origin xyz="1.1731 0.345 0.765" rpy="0 0 0" />
-    <parent link="base_link" />
+    <parent link="gem_body_link" />
     <child link="turnlight_fl_link" />
     <axis xyz="0 0 0" />
   </joint>
@@ -314,7 +328,7 @@
 
   <joint name="turnlight_fr_joint" type="fixed">
     <origin xyz="1.1731 -0.345 0.765" rpy="0 0 0" />
-    <parent link="base_link" />
+    <parent link="gem_body_link" />
     <child link="turnlight_fr_link" />
     <axis xyz="0 0 0" />
   </joint>
@@ -351,7 +365,7 @@
   <joint name="lightbar_joint" type="fixed">
     <origin xyz="-1.07655 0 0.9449" rpy="-1.9138 0 1.5708" />
     <origin xyz="0 0 0" rpy="0 0 0" />
-    <parent link="base_link" />
+    <parent link="gem_body_link" />
     <child link="lightbar_link" />
     <axis xyz="0 0 0" />
   </joint>
@@ -387,7 +401,7 @@
 
   <joint name="stoplight_rl_joint" type="fixed">
     <origin xyz="-1.625 0.38 0.423" rpy="0 0 3.1416" />
-    <parent link="base_link" />
+    <parent link="gem_body_link" />
     <child link="rear_left_stop_light_link" />
     <axis xyz="0 0 0" />
   </joint>
@@ -423,7 +437,7 @@
 
   <joint name="stoplight_rr_joint" type="fixed">
     <origin xyz="-1.625 -0.38 0.423" rpy="0 0 3.1416" />
-    <parent link="base_link" />
+    <parent link="gem_body_link" />
     <child link="rear_right_stop_light_link" />
     <axis xyz="0 0 0" />
   </joint>
@@ -459,7 +473,7 @@
 
   <joint name="taillight_rl_joint" type="fixed">
     <origin xyz="-1.62 0.32 0.203" rpy="0 0 3.1416" />
-    <parent link="base_link" />
+    <parent link="gem_body_link" />
     <child link="taillight_rl_link" />
     <axis xyz="0 0 0" />
   </joint>
@@ -495,7 +509,7 @@
 
   <joint name="taillight_rr_joint" type="fixed">
     <origin xyz="-1.62 -0.32 0.203" rpy="0 0 3.1416" />
-    <parent link="base_link" />
+    <parent link="gem_body_link" />
     <child link="taillight_rr_link" />
     <axis xyz="0 0 0" />
   </joint>
@@ -531,7 +545,7 @@
 
   <joint name="i_logo_fl_joint" type="fixed">
     <origin xyz="0.3966 0.6695 0.4123" rpy="0 0 0" />
-    <parent link="base_link" />
+    <parent link="gem_body_link" />
     <child link="i_logo_fl_link" />
     <axis xyz="0 0 0" />
   </joint>
@@ -567,7 +581,7 @@
 
   <joint name="i_logo_rl_joint" type="fixed">
     <origin xyz="-0.42344 0.6695 0.4123" rpy="0 0 0" />
-    <parent link="base_link" />
+    <parent link="gem_body_link" />
     <child link="i_logo_rl_link" />
     <axis xyz="0 0 0" />
   </joint>
@@ -603,7 +617,7 @@
 
   <joint name="i_logo_fr_joint" type="fixed">
     <origin xyz="0.3966 -0.68 0.4123" rpy="0 0 0" />
-    <parent link="base_link" />
+    <parent link="gem_body_link" />
     <child link="i_logo_fr_link" />
     <axis xyz="0 0 0" />
   </joint>
@@ -639,13 +653,13 @@
 
   <joint name="i_logo_rr_joint" type="fixed">
     <origin xyz="-0.42344 -0.68 0.4123" rpy="0 0 0" />
-    <parent link="base_link" />
+    <parent link="gem_body_link" />
     <child link="i_logo_rr_link" />
     <axis xyz="0 0 0" />
   </joint>
 
   <!-- ************************************* Sensor Links ************************************* -->
-  <xacro:OS1_64 parent="base_link" name="os_sensor" topic_points="/ouster/points" topic_imu ="/ouster/imu" hz="10" lasers="64" samples="512" min_range="0.9" max_range="75.0" noise="0.008" min_angle="-${M_PI}" max_angle="${M_PI}" lidar_link="os_lidar" imu_link="os_imu" vfov_min="-.26" vfov_max=".26" >
+  <xacro:OS1_64 parent="gem_body_link" name="os_sensor" topic_points="/ouster/points" topic_imu ="/ouster/imu" hz="10" lasers="64" samples="512" min_range="0.9" max_range="75.0" noise="0.008" min_angle="-${M_PI}" max_angle="${M_PI}" lidar_link="os_lidar" imu_link="os_imu" vfov_min="-.26" vfov_max=".26" >
     <origin xyz="-0.15 0 2.08" rpy="0.011804 0.025103 0.00015" />
   </xacro:OS1_64>
   
@@ -678,7 +692,7 @@
 
   <joint name="gps_antenna_main_joint" type="fixed">
     <origin xyz="-0.01144 0.6525 1.7" rpy="0 0 0" />
-    <parent link="base_link" />
+    <parent link="gem_body_link" />
     <child link="gps_antenna_main_link" />
     <axis xyz="0 0 1" />
   </joint>
@@ -712,7 +726,7 @@
 
   <joint name="gps_antenna_aux_joint" type="fixed">
     <origin xyz="-0.01144 -0.6525 1.7" rpy="0 0 0" />
-    <parent link="base_link" />
+    <parent link="gem_body_link" />
     <child link="gps_antenna_aux_link" />
     <axis xyz="0 0 1" />
   </joint>
@@ -746,7 +760,7 @@
 
   <joint name="oak_joint" type="fixed">
     <origin xyz="0.535 0 1.683" rpy="0 0 0.05" />
-    <parent link="base_link" />
+    <parent link="gem_body_link" />
     <child link="oak_link" />
     <axis xyz="0 0 0" />
   </joint>
@@ -782,7 +796,7 @@
 
   <joint name="livox_lidar_joint" type="fixed">
     <origin xyz="0.4 0 1.78" rpy="0 0.323 0.018" />
-    <parent link="base_link" />
+    <parent link="gem_body_link" />
     <child link="livox_lidar_link" />
     <axis xyz="0 0 0" />
   </joint>
@@ -816,7 +830,7 @@
 
   <joint name="front_radar_joint" type="fixed">
     <origin xyz="1.835 0 0.35" rpy="0 0 0" />
-    <parent link="base_link" />
+    <parent link="gem_body_link" />
     <child link="front_radar_link" />
     <axis xyz="0 0 0" />
   </joint>
@@ -850,7 +864,7 @@
 
   <joint name="imu_joint" type="fixed">
     <origin xyz="-0.0044387 0 0.18294" rpy="0 0 0" />
-    <parent link="base_link" />
+    <parent link="gem_body_link" />
     <child link="imu_link" />
     <axis xyz="0 0 0" />
   </joint>
@@ -892,7 +906,7 @@
 
   <joint name="front_left_corner_camera_joint" type="fixed">
     <origin xyz="0.5 0.6545 1.75" rpy="0 0.785 0.785"/>
-    <parent link="base_link"/>
+    <parent link="gem_body_link"/>
     <child link="front_left_corner_camera_link"/>
     <axis xyz="0 0 0" />
   </joint>
@@ -935,7 +949,7 @@
 
   <joint name="front_right_corner_camera_joint" type="fixed">
     <origin xyz="0.5 -0.6535 1.75" rpy="0 0.785 -0.785"/>
-    <parent link="base_link"/>
+    <parent link="gem_body_link"/>
     <child link="front_right_corner_camera_link"/>
     <axis xyz="0 0 0" />
   </joint>
@@ -978,7 +992,7 @@
 
   <joint name="rear_left_corner_camera_joint" type="fixed">
     <origin xyz="-1.0 0.6545 1.75" rpy="0 0.785 2.356"/>
-    <parent link="base_link"/>
+    <parent link="gem_body_link"/>
     <child link="rear_left_corner_camera_link"/>
     <axis xyz="0 0 0" />
   </joint>
@@ -1021,7 +1035,7 @@
 
   <joint name="rear_right_corner_camera_joint" type="fixed">
     <origin xyz="-1.0 -0.6535 1.75" rpy="0 0.785 -2.356"/>
-    <parent link="base_link"/>
+    <parent link="gem_body_link"/>
     <child link="rear_right_corner_camera_link"/>
     <axis xyz="0 0 0" />
   </joint>
@@ -1068,7 +1082,7 @@
 
   <joint name="GPS_joint" type="fixed">
     <origin xyz="-0.246 0 0.05" rpy="0 0 0"/>
-    <parent link="base_link"/>
+    <parent link="gem_body_link"/>
     <child link="GPS_link"/>
   </joint>
 
@@ -1087,7 +1101,7 @@
   </gazebo>
 
   <joint name="left_steering_hinge_joint" type="revolute">
-    <parent link="base_link" />
+    <parent link="gem_body_link" />
     <child link="left_steering_hinge_link" />
     <origin xyz="1.2746 0.6545 0.027" rpy="0 0 0" />
     <axis xyz="0 0 1" />
@@ -1143,7 +1157,7 @@
   </gazebo>
 
   <joint name="right_steering_hinge_joint" type="revolute">
-    <parent link="base_link" />
+    <parent link="gem_body_link" />
     <child link="right_steering_hinge_link" />
     <origin xyz="1.2746 -0.6535 0.027" rpy="0 0 0" />
     <axis xyz="0 0 1" />
@@ -1214,7 +1228,7 @@
 
   <joint name="rear_left_wheel_joint" type="continuous">
     <origin xyz="-1.2904 0.6545 0.027" rpy="0 0 0" />
-    <parent link="base_link" />
+    <parent link="gem_body_link" />
     <child link="rear_left_wheel_link" />
     <axis xyz="0 1 0" />
     <limit effort="1000.0" velocity="100.0" />
@@ -1250,7 +1264,7 @@
 
   <joint name="rear_right_wheel_joint" type="continuous">
     <origin xyz="-1.2904 -0.6535 0.027" rpy="0 0 0" />
-    <parent link="base_link" />
+    <parent link="gem_body_link" />
     <child link="rear_right_wheel_link" />
     <axis xyz="0 1 0" />
     <limit effort="1000.0" velocity="100.0" />
