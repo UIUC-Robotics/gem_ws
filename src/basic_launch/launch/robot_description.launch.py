@@ -5,6 +5,7 @@ from launch.substitutions import Command, EnvironmentVariable
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch_xml.launch_description_sources import XMLLaunchDescriptionSource
 from launch_ros.actions import Node
+from launch_ros.parameter_descriptions import ParameterValue
 from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription
 from launch.substitutions import LaunchConfiguration
 
@@ -21,7 +22,7 @@ def generate_launch_description():
         executable='robot_state_publisher',
         name='robot_state_publisher_node',
         # emulate_tty=True,
-        parameters=[{'use_sim_time': False, 'robot_description': Command(['xacro ', robot_desc_path])}],
+        parameters=[{'use_sim_time': False, 'robot_description': ParameterValue(Command(['xacro ', robot_desc_path]), value_type=str)}],
         output="screen"
     )
 
